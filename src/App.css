@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#root {
+  height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+@keyframes auroraGradient {
+  0% { background-image: radial-gradient(125% 125% at 50% 0%, #020617 50%, #13FFAA); }
+  25% { background-image: radial-gradient(125% 125% at 50% 0%, #020617 50%, #1E67C6); }
+  50% { background-image: radial-gradient(125% 125% at 50% 0%, #020617 50%, #CE84CF); }
+  75% { background-image: radial-gradient(125% 125% at 50% 0%, #020617 50%, #DD335C); }
+  100% { background-image: radial-gradient(125% 125% at 50% 0%, #020617 50%, #13FFAA); }
+}
+
+.aurora-bg {
+  animation: auroraGradient 20s ease-in-out infinite;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.stars {
+  background: url('/stars.png');
+  background-size: cover;
+  opacity: 0.1;
+}
+
+.btn-glow {
+  border: 1px solid #13FFAA;
+  box-shadow: 0px 4px 24px #13FFAA;
+  transition: transform 0.2s;
+}
+
+.btn-glow:hover {
+  transform: scale(1.015);
+}
+
+.btn-glow:active {
+  transform: scale(0.985);
+}
+
+.arrow-icon {
+  transition: transform 0.3s ease;
+}
+
+.btn-glow:hover .arrow-icon {
+  transform: rotate(-45deg);
+}
+
+.btn-glow:active .arrow-icon {
+  transform: rotate(-12deg);
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.card-animated {
+  position: relative;
+  z-index: 0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  overflow: hidden;
+  background: #1c1f2b;
+  color: #c9d1f5;
+  text-align: center;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+.card-animated::before {
+  content: "";
+  position: absolute;
+  inset: -2px; /* untuk sedikit keluar dari border */
+  z-index: -2;
+  background: conic-gradient(from var(--angle), #0040ff, #0030aa, #0040ff);
+  border-radius: 14px;
+  animation: spin 8s linear infinite;
+}
+
+.card-animated::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #1c1f2b;
+  z-index: -1;
+  border-radius: 12px;
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin {
+  from {
+    --angle: 0deg;
+  }
+  to {
+    --angle: 360deg;
+  }
+}
