@@ -4,6 +4,16 @@ import flowbiteReact from "flowbite-react/plugin/vite";
 
 export default defineConfig({
   plugins: [react(), flowbiteReact()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://sentinova-backend-412208638292.asia-southeast1.run.app',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,

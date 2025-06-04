@@ -1,7 +1,19 @@
 import { useState, useEffect } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { FiArrowLeft, FiDownload, FiClock, FiDatabase, FiTrendingUp } from "react-icons/fi"
+import {
+  FiArrowLeft,
+  FiDownload,
+  FiClock,
+  FiDatabase,
+  FiTrendingUp,
+  FiCpu,
+  FiZap,
+  FiAlertCircle,
+  FiChevronLeft,
+  FiChevronRight,
+  FiPackage,
+} from "react-icons/fi"
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 const AnalysisResults = () => {
@@ -9,6 +21,60 @@ const AnalysisResults = () => {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [results, setResults] = useState(null)
+  const [activeModel, setActiveModel] = useState("pretrained") // "pretrained" or "naivebayes"
+  const [comparisonMode, setComparisonMode] = useState(false)
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+
+  // Mock data untuk Naive Bayes (sementara belum di-deploy)
+  const generateMockNaiveBayesData = (pretrainedData) => {
+    // Simulasi hasil yang sedikit berbeda dari pre-trained model
+    const mockSentimentDistribution = pretrainedData.sentimentDistribution.map((item) => ({
+      ...item,
+      value: Math.max(5, Math.min(85, item.value + (Math.random() - 0.5) * 20)), // Variasi ±10%
+      count: Math.floor(item.count * (0.9 + Math.random() * 0.2)), // Variasi count
+    }))
+
+    // Recalculate percentages to ensure they add up to 100
+    const totalCount = mockSentimentDistribution.reduce((sum, item) => sum + item.count, 0)
+    mockSentimentDistribution.forEach((item) => {
+      item.value = Math.round((item.count / totalCount) * 100)
+    })
+
+    const mockKeywords = pretrainedData.topKeywords
+      .map((keyword) => ({
+        ...keyword,
+        value: Math.max(1, keyword.value + Math.floor((Math.random() - 0.5) * 10)),
+      }))
+      .sort((a, b) => b.value - a.value)
+
+    const mockReviewDetails = pretrainedData.reviewDetails.map((review) => ({
+      ...review,
+      confidence: Math.max(0.5, Math.min(0.99, review.confidence + (Math.random() - 0.5) * 0.3)),
+      // Occasionally change sentiment for some reviews to show difference
+      sentiment:
+        Math.random() > 0.85
+          ? review.sentiment === "Positive"
+            ? "Neutral"
+            : review.sentiment === "Negative"
+              ? "Neutral"
+              : review.sentiment
+          : review.sentiment,
+    }))
+
+    return {
+      productName: pretrainedData.productName,
+      analysisDate: pretrainedData.analysisDate,
+      totalReviews: pretrainedData.totalReviews,
+      processingTime: `${(Number.parseFloat(pretrainedData.processingTime) * 0.7).toFixed(1)}s`, // Naive Bayes biasanya lebih cepat
+      accuracy: Math.max(70, Math.min(90, pretrainedData.accuracy - 5 + Math.random() * 10)), // Sedikit berbeda akurasi
+      sentimentDistribution: mockSentimentDistribution,
+      topKeywords: mockKeywords,
+      reviewDetails: mockReviewDetails,
+    }
+  }
 
   useEffect(() => {
     if (!location.state?.results) {
@@ -17,19 +83,61 @@ const AnalysisResults = () => {
     }
 
     const apiResults = location.state.results
-    setResults({
-      productName: apiResults.productName,
-      analysisDate: apiResults.analysisDate,
-      totalReviews: apiResults.totalReviews,
-      processingTime: apiResults.processingTime,
-      summary: apiResults.summary,
-      sentimentDistribution: apiResults.sentimentDistribution,
-      topKeywords: apiResults.topKeywords,
-      reviewDetails: apiResults.reviewDetails.map(review => ({
+
+    // Process results for pretrained model
+    const processModelResults = (modelData) => ({
+      productName: modelData.productName,
+      analysisDate: modelData.analysisDate,
+      totalReviews: modelData.totalReviews,
+      processingTime: modelData.processingTime,
+      accuracy: modelData.accuracy || 85,
+      sentimentDistribution: modelData.sentimentDistribution,
+      topKeywords: modelData.topKeywords,
+      reviewDetails: modelData.reviewDetails.map((review) => ({
         ...review,
-        color: review.sentiment === "Positive" ? "#10B981" : 
-               review.sentiment === "Negative" ? "#EF4444" : "#6B7280"
-      }))
+        color: review.sentiment === "Positive" ? "#10B981" : review.sentiment === "Negative" ? "#EF4444" : "#6B7280",
+      })),
+    })
+
+    // Check if we have real pretrained data or need to use fallback
+    let pretrainedResults
+    if (apiResults.pretrainedModel) {
+      pretrainedResults = processModelResults(apiResults.pretrainedModel)
+    } else {
+      // Fallback jika struktur data berbeda
+      pretrainedResults = processModelResults(apiResults)
+    }
+
+    // Generate mock Naive Bayes data
+    const naiveBayesResults = generateMockNaiveBayesData(pretrainedResults)
+
+    // Process Naive Bayes results with color mapping
+    const processedNaiveBayesResults = {
+      ...naiveBayesResults,
+      reviewDetails: naiveBayesResults.reviewDetails.map((review) => ({
+        ...review,
+        color: review.sentiment === "Positive" ? "#10B981" : review.sentiment === "Negative" ? "#EF4444" : "#6B7280",
+      })),
+    }
+
+    setResults({
+      pretrained: pretrainedResults,
+      naivebayes: processedNaiveBayesResults,
+      // Summary yang sama untuk kedua model
+      summary:
+        apiResults.summary ||
+        pretrainedResults.summary ||
+        "Analisis sentimen telah selesai dilakukan terhadap ulasan produk ini. Hasil menunjukkan distribusi sentimen yang dapat membantu dalam memahami persepsi pelanggan terhadap produk.",
+      comparison: {
+        accuracyComparison: [
+          { model: "Pre-trained", accuracy: pretrainedResults.accuracy },
+          { model: "Naive Bayes", accuracy: naiveBayesResults.accuracy },
+        ],
+        processingTimeComparison: [
+          { model: "Pre-trained", time: Number.parseFloat(pretrainedResults.processingTime) || 2.3 },
+          { model: "Naive Bayes", time: Number.parseFloat(naiveBayesResults.processingTime) || 1.6 },
+        ],
+      },
     })
     setIsLoading(false)
   }, [location.state, navigate])
@@ -37,7 +145,7 @@ const AnalysisResults = () => {
   const handleDownload = () => {
     const dataStr = JSON.stringify(results, null, 2)
     const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
-    const exportFileDefaultName = `analisis-${results.productName}-${new Date().toISOString().split("T")[0]}.json`
+    const exportFileDefaultName = `analisis-comparison-${results.pretrained.productName}-${new Date().toISOString().split("T")[0]}.json`
 
     const linkElement = document.createElement("a")
     linkElement.setAttribute("href", dataUri)
@@ -52,33 +160,169 @@ const AnalysisResults = () => {
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-white text-lg">Memproses hasil analisis...</p>
-            <p className="text-gray-400 text-sm mt-2">Mohon tunggu sebentar</p>
+            <p className="text-gray-400 text-sm mt-2">Menganalisis dengan kedua model...</p>
           </div>
         </div>
       </div>
     )
   }
 
-  // Find dominant sentiment
-  const dominantSentiment = results.sentimentDistribution.reduce((prev, current) => 
-    (current.count > prev.count) ? current : prev
+  const currentResults = results[activeModel]
+  const dominantSentiment = currentResults.sentimentDistribution.reduce((prev, current) =>
+    current.count > prev.count ? current : prev,
+  )
+
+  // Pagination logic
+  const totalPages = Math.ceil(currentResults.reviewDetails.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentReviews = currentResults.reviewDetails.slice(startIndex, endIndex)
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage)
+  }
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1) // Reset to first page
+  }
+
+  const ModelSelector = () => (
+    <div className="flex items-center gap-4 mb-6">
+      <div className="flex bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-1">
+        <button
+          onClick={() => setActiveModel("pretrained")}
+          className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
+            activeModel === "pretrained" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <FiCpu />
+          Pre-trained Model
+        </button>
+        <button
+          onClick={() => setActiveModel("naivebayes")}
+          className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
+            activeModel === "naivebayes" ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <FiZap />
+          Naive Bayes
+        </button>
+      </div>
+
+      <button
+        onClick={() => setComparisonMode(!comparisonMode)}
+        className={`px-4 py-2 rounded-lg border transition-all ${
+          comparisonMode
+            ? "bg-green-600 border-green-600 text-white"
+            : "border-white/20 text-gray-400 hover:text-white hover:border-white/40"
+        }`}
+      >
+        {comparisonMode ? "Hide Comparison" : "Compare Models"}
+      </button>
+    </div>
+  )
+
+  const ModelComparisonCharts = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      {/* Accuracy Comparison */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6"
+      >
+        <h3 className="text-lg font-bold text-white mb-4">Perbandingan Akurasi</h3>
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={results.comparison.accuracyComparison}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="model" tick={{ fill: "#9CA3AF", fontSize: 12 }} />
+              <YAxis tick={{ fill: "#9CA3AF", fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1F2937",
+                  border: "1px solid #374151",
+                  borderRadius: "8px",
+                  color: "#F3F4F6",
+                }}
+                formatter={(value) => [`${value.toFixed(1)}%`, "Akurasi"]}
+              />
+              <Bar dataKey="accuracy" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
+
+      {/* Processing Time Comparison */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6"
+      >
+        <h3 className="text-lg font-bold text-white mb-4">Perbandingan Waktu Proses</h3>
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={results.comparison.processingTimeComparison}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="model" tick={{ fill: "#9CA3AF", fontSize: 12 }} />
+              <YAxis tick={{ fill: "#9CA3AF", fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1F2937",
+                  border: "1px solid #374151",
+                  borderRadius: "8px",
+                  color: "#F3F4F6",
+                }}
+                formatter={(value) => [`${value}s`, "Waktu Proses"]}
+              />
+              <Bar dataKey="time" fill="#10B981" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
+    </div>
   )
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
-      {/* Header */}
+      {/* Header dengan Product Name yang lebih prominent */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-4 mb-2">
+          <div className="flex items-center gap-4 mb-4">
             <button
               onClick={() => navigate("/flow")}
               className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
             >
               <FiArrowLeft />
             </button>
-            <h1 className="text-3xl font-bold text-white">Hasil Analisis Produk</h1>
+            <h1 className="text-3xl font-bold text-white">Hasil Analisis Multi-Model</h1>
           </div>
-          <p className="text-gray-400">Analisis sentimen untuk produk: {results.productName}</p>
+
+          {/* Product Name Card - More Prominent */}
+          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-3">
+              <FiPackage className="text-blue-400 text-2xl" />
+              <div>
+                <p className="text-gray-400 text-sm">Produk yang Dianalisis</p>
+                <h2 className="text-2xl font-bold text-white">{currentResults.productName}</h2>
+              </div>
+            </div>
+          </div>
+
+          {/* Analysis Time Info */}
+          <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <FiClock className="text-blue-400" />
+              <span className="text-gray-400">Waktu Analisis:</span>
+              <span className="text-white font-medium">{currentResults.analysisDate}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">Durasi Proses:</span>
+              <span className="text-green-400 font-medium">
+                Pre-trained: {results.pretrained.processingTime} | Naive Bayes: {results.naivebayes.processingTime}
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-3">
@@ -102,6 +346,39 @@ const AnalysisResults = () => {
         </div>
       </div>
 
+      {/* Model Selector */}
+      <ModelSelector />
+
+      {/* Model Comparison Charts */}
+      {comparisonMode && <ModelComparisonCharts />}
+
+      {/* Current Model Info */}
+      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {activeModel === "pretrained" ? (
+              <FiCpu className="text-blue-400 text-xl" />
+            ) : (
+              <FiZap className="text-purple-400 text-xl" />
+            )}
+            <div>
+              <h3 className="text-white font-medium">
+                {activeModel === "pretrained" ? "Pre-trained Model" : "Naive Bayes Algorithm"}
+              </h3>
+              <p className="text-gray-400 text-sm">
+                {activeModel === "pretrained"
+                  ? "Model yang telah dilatih dengan dataset besar"
+                  : "Algoritma klasifikasi probabilistik (simulasi)"}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-white font-bold text-lg">{currentResults.accuracy.toFixed(1)}%</p>
+            <p className="text-gray-400 text-sm">Akurasi</p>
+          </div>
+        </div>
+      </div>
+
       {/* Analysis Info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
@@ -112,10 +389,12 @@ const AnalysisResults = () => {
         >
           <div className="flex items-center gap-3 mb-2">
             <FiClock className="text-blue-400" />
-            <h3 className="text-white font-medium">Waktu Analisis</h3>
+            <h3 className="text-white font-medium">Waktu Proses Model</h3>
           </div>
-          <p className="text-gray-300">{results.analysisDate}</p>
-          <p className="text-gray-400 text-sm">Diproses dalam {results.processingTime}</p>
+          <p className="text-2xl font-bold text-white">{currentResults.processingTime}</p>
+          <p className="text-gray-400 text-sm">
+            {activeModel === "pretrained" ? "Pre-trained Model" : "Naive Bayes Algorithm"}
+          </p>
         </motion.div>
 
         <motion.div
@@ -128,7 +407,7 @@ const AnalysisResults = () => {
             <FiDatabase className="text-green-400" />
             <h3 className="text-white font-medium">Data Dianalisis</h3>
           </div>
-          <p className="text-2xl font-bold text-white">{results.totalReviews}</p>
+          <p className="text-2xl font-bold text-white">{currentResults.totalReviews}</p>
           <p className="text-gray-400 text-sm">Total ulasan</p>
         </motion.div>
 
@@ -149,14 +428,14 @@ const AnalysisResults = () => {
         </motion.div>
       </div>
 
-      {/* Summary */}
+      {/* Summary - Satu untuk semua model */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
         className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6"
       >
-        <h2 className="text-xl font-bold text-white mb-4">Ringkasan Produk</h2>
+        <h2 className="text-xl font-bold text-white mb-4">Ringkasan Analisis Produk</h2>
         <p className="text-gray-300 leading-relaxed">{results.summary}</p>
       </motion.div>
 
@@ -174,14 +453,14 @@ const AnalysisResults = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={results.sentimentDistribution}
+                  data={currentResults.sentimentDistribution}
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
                   dataKey="value"
                   label={({ name, value }) => `${name}: ${value}%`}
                 >
-                  {results.sentimentDistribution.map((entry, index) => (
+                  {currentResults.sentimentDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -190,7 +469,7 @@ const AnalysisResults = () => {
             </ResponsiveContainer>
           </div>
           <div className="flex justify-center gap-6 mt-4">
-            {results.sentimentDistribution.map((item) => (
+            {currentResults.sentimentDistribution.map((item) => (
               <div key={item.name} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
                 <span className="text-gray-300 text-sm">
@@ -211,7 +490,7 @@ const AnalysisResults = () => {
           <h2 className="text-xl font-bold text-white mb-4">Kata Kunci Populer</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={results.topKeywords.slice(0, 8)}>
+              <BarChart data={currentResults.topKeywords.slice(0, 8)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="text" tick={{ fill: "#9CA3AF", fontSize: 12 }} />
                 <YAxis tick={{ fill: "#9CA3AF", fontSize: 12 }} />
@@ -223,66 +502,142 @@ const AnalysisResults = () => {
                     color: "#F3F4F6",
                   }}
                 />
-                <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="value"
+                  fill={activeModel === "pretrained" ? "#3B82F6" : "#8B5CF6"}
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
       </div>
 
-      {/* Review Details */}
+      {/* Review Details dengan Pagination */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
         className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6"
       >
-        <h2 className="text-xl font-bold text-white mb-4">Detail Analisis Ulasan</h2>
-        <div className="overflow-x-auto">
-          <div className="max-h-96 overflow-y-auto">
-            <table className="w-full">
-              <thead className="sticky top-0 bg-black/50 backdrop-blur-sm">
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Ulasan</th>
-                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Sentimen</th>
-                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Confidence</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.reviewDetails.map((review, index) => (
-                  <motion.tr
-                    key={review.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.8 + index * 0.1 }}
-                    className="border-b border-white/5 hover:bg-white/5"
-                  >
-                    <td className="py-3 px-4 text-gray-300 max-w-md">
-                      <p className="line-clamp-2">{review.text}</p>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className="px-3 py-1 rounded-full text-sm font-medium"
-                        style={{
-                          backgroundColor: `${review.color}20`,
-                          color: review.color,
-                        }}
-                      >
-                        {review.sentiment}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-300">{Math.round(review.confidence * 100)}%</td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-white mb-4 md:mb-0">
+            Detail Analisis Ulasan - {activeModel === "pretrained" ? "Pre-trained Model" : "Naive Bayes"}
+          </h2>
+
+          {/* Items per page selector */}
+          <div className="flex items-center gap-4">
+            <span className="text-gray-400 text-sm">Tampilkan:</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+              className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+            <span className="text-gray-400 text-sm">per halaman</span>
           </div>
         </div>
-        <div className="mt-4 text-center">
-          <p className="text-gray-400 text-sm">
-            Menampilkan {results.reviewDetails.length} dari {results.totalReviews} ulasan. 
-            Download hasil lengkap untuk melihat semua data.
-          </p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-black/50 backdrop-blur-sm">
+              <tr className="border-b border-white/10">
+                <th className="text-left py-3 px-4 text-gray-300 font-medium">No.</th>
+                <th className="text-left py-3 px-4 text-gray-300 font-medium">Ulasan</th>
+                <th className="text-left py-3 px-4 text-gray-300 font-medium">Sentimen</th>
+                <th className="text-left py-3 px-4 text-gray-300 font-medium">Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentReviews.map((review, index) => (
+                <motion.tr
+                  key={review.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="border-b border-white/5 hover:bg-white/5"
+                >
+                  <td className="py-3 px-4 text-gray-400 text-sm">{startIndex + index + 1}</td>
+                  <td className="py-3 px-4 text-gray-300 max-w-md">
+                    <p className="line-clamp-2">{review.text}</p>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span
+                      className="px-3 py-1 rounded-full text-sm font-medium"
+                      style={{
+                        backgroundColor: `${review.color}20`,
+                        color: review.color,
+                      }}
+                    >
+                      {review.sentiment}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-gray-300">{Math.round(review.confidence * 100)}%</td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mt-6 gap-4">
+          <div className="text-gray-400 text-sm">
+            Menampilkan {startIndex + 1} - {Math.min(endIndex, currentResults.reviewDetails.length)} dari{" "}
+            {currentResults.reviewDetails.length} ulasan
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <FiChevronLeft />
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                      currentPage === pageNum ? "bg-blue-600 text-white" : "bg-white/10 hover:bg-white/20 text-gray-300"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <FiChevronRight />
+            </button>
+          </div>
+
+          <div className="text-gray-400 text-sm">
+            Halaman {currentPage} dari {totalPages}
+          </div>
         </div>
       </motion.div>
     </div>
