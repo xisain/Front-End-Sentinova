@@ -1,8 +1,0 @@
-flask
-flask-cors
-matplotlib
-nltk
-pandas
-scikit-learn
-torch
-tqdm
