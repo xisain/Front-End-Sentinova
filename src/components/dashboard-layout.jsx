@@ -4,9 +4,7 @@ import { Canvas } from "@react-three/fiber"
 import { Stars } from "@react-three/drei"
 import { motion, useMotionTemplate, useMotionValue, animate } from "framer-motion"
 import { FiMenu, FiBell } from "react-icons/fi"
-import { auth, db } from "../js/firebase-init"
-import { doc, getDoc } from "firebase/firestore"
-import { onAuthStateChanged } from "firebase/auth"
+import { useUser, UserButton } from "@clerk/clerk-react"
 import Sidebar from "./sidebar"
 
 // Reuse the same color palette
@@ -51,10 +49,9 @@ const DashboardLayout = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [username, setUsername] = useState("")
-  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
-  const location = useLocation();
+  const location = useLocation()
+  const { isSignedIn, isLoaded, user } = useUser()
 
   // Check if mobile
   useEffect(() => {
@@ -70,42 +67,28 @@ const DashboardLayout = ({ children }) => {
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
-  // Auth check and user data
+  // Clerk Auth check
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        navigate("/login")
-        return
-      }
+    if (isLoaded && !isSignedIn) {
+      navigate("/")
+    }
+  }, [isLoaded, isSignedIn, navigate])
 
-      try {
-        const docSnap = await getDoc(doc(db, "users", user.uid))
-        if (docSnap.exists() && docSnap.data().username) {
-          setUsername(docSnap.data().username)
-        } else {
-          setUsername("User")
-        }
-      } catch (err) {
-        console.error("Error fetching user data:", err)
-        setUsername("User")
-      }
-      setIsLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [navigate])
+  // Ambil nama user dari Clerk
+  const username = user?.username || user?.firstName || "User"
 
   const getTitle = () => {
-    if (location.pathname === "/flow" || location.pathname === "/flow/") return "Dashboard";
-    if (location.pathname.startsWith("/flow/analysis/results")) return "Hasil Analisis";
-    if (location.pathname.startsWith("/flow/analysis")) return "Analisis Baru";
-    if (location.pathname.startsWith("/flow/history")) return "Riwayat Analisis";
-    if (location.pathname.startsWith("/flow/reports")) return "Laporan";
-    if (location.pathname.startsWith("/flow/settings")) return "Pengaturan";
-    return "Dashboard";
-  };
+    if (location.pathname === "/flow" || location.pathname === "/flow/") return "Dashboard"
+    if (location.pathname.startsWith("/flow/analysis/results")) return "Hasil Analisis"
+    if (location.pathname.startsWith("/flow/analysis")) return "Analisis Baru"
+    if (location.pathname.startsWith("/flow/history")) return "Riwayat Analisis"
+    if (location.pathname.startsWith("/flow/reports")) return "Laporan"
+    if (location.pathname.startsWith("/flow/settings")) return "Pengaturan"
+    return "Dashboard"
+  }
 
-  if (isLoading) {
+  if (!isLoaded) {
+    // Loading state saat Clerk masih loading
     return (
       <AnimatedBackground className="min-h-screen flex items-center justify-center">
         <div className="text-center">

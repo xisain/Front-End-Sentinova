@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from "react"
+import { useNavigate, Link } from "react-router-dom";
 import { Canvas } from "@react-three/fiber"
 import { Stars } from "@react-three/drei"
 import { FiArrowRight, FiTarget, FiSmile, FiLock, FiLink } from "react-icons/fi"
-import { Link } from "react-router-dom"
 import TiltCard from "./tiltcard"
 import { motion, useMotionTemplate, useMotionValue, animate } from "framer-motion"
+import { useUser } from "@clerk/clerk-react";
+import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 
 // Expanded color palette for the entire site
 const COLORS_TOP = ["#13FFAA", "#1E67C6", "#CE84CF", "#DD335C"]
@@ -503,7 +505,16 @@ const EnhancedFAQSection = () => {
 }
 
 export default function Home() {
-  return (
+  const { isSignedIn, isLoaded } = useUser();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      navigate("/flow");
+    }
+  }, [isLoaded, isSignedIn, navigate]);
+
+return (
     <AnimatedBackground className="min-h-screen">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 w-full z-20 bg-black/20 backdrop-blur-md shadow-none">
@@ -538,20 +549,18 @@ export default function Home() {
           <div className="hidden w-full md:block md:w-auto" id="navbar-default">
             <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 md:flex-row md:mt-0">
               <li>
-                <Link
-                  to="/login"
-                  className="text-white font-poppins text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center hover:bg-white/10 rounded-lg"
-                >
-                  Login
-                </Link>
+                <SignInButton mode="modal" afterSignInUrl="/flow">
+                  <button className="text-white font-poppins text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center hover:bg-white/10 rounded-lg">
+                    Login
+                  </button>
+                </SignInButton>
               </li>
               <li>
-                <Link
-                  to="/Register"
-                  className="text-white bg-blue-600/80 hover:bg-blue-700/90 backdrop-blur-sm focus:ring-4 focus:outline-none focus:ring-blue-300/50 font-poppins rounded-lg text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center"
-                >
-                  Register
-                </Link>
+                <SignUpButton mode="modal" afterSignUpUrl="/flow">
+                  <button className="text-white bg-blue-600/80 hover:bg-blue-700/90 backdrop-blur-sm focus:ring-4 focus:outline-none focus:ring-blue-300/50 font-poppins rounded-lg text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center">
+                    Register
+                  </button>
+                </SignUpButton>
               </li>
             </ul>
           </div>

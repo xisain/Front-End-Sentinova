@@ -2,7 +2,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/home';
-import Sentiment from './pages/sentiment';
 import Login from "./pages/login";
 import Register from "./pages/Register";
 import Flow from "./pages/flow";
@@ -14,14 +13,15 @@ import ReportsContent from "./pages/flow/ReportsContent";
 import SettingsContent from "./pages/flow/SettingsContent";
 import './App.css';
 import './index.css';
+import { SignIn, SignUp, SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/sentiment" element={<Sentiment />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<SignIn afterSignInUrl="/flow" />} />
+      <Route path="/register" element={<SignUp afterSignUpUrl="/flow" />} />
       {/* Nested route for /flow */}
       <Route path="/flow" element={<Flow />}>
         <Route index element={<DashboardContent />} />
