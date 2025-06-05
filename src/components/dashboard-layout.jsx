@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { Canvas } from "@react-three/fiber"
 import { Stars } from "@react-three/drei"
@@ -52,6 +52,8 @@ const DashboardLayout = ({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { isSignedIn, isLoaded, user } = useUser()
+  const username = user?.username || user?.firstName || "User"
+  const userButtonRef = useRef(null)
 
   // Check if mobile
   useEffect(() => {
@@ -74,9 +76,6 @@ const DashboardLayout = ({ children }) => {
     }
   }, [isLoaded, isSignedIn, navigate])
 
-  // Ambil nama user dari Clerk
-  const username = user?.username || user?.firstName || "User"
-
   const getTitle = () => {
     if (location.pathname === "/flow" || location.pathname === "/flow/") return "Dashboard"
     if (location.pathname.startsWith("/flow/analysis/results")) return "Hasil Analisis"
@@ -90,17 +89,17 @@ const DashboardLayout = ({ children }) => {
   if (!isLoaded) {
     // Loading state saat Clerk masih loading
     return (
-      <AnimatedBackground className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading...</p>
         </div>
-      </AnimatedBackground>
+      </div>
     )
   }
 
   return (
-    <AnimatedBackground className="min-h-screen">
+    <div className="min-h-screen bg-slate-900">
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <Sidebar
@@ -135,10 +134,24 @@ const DashboardLayout = ({ children }) => {
                 </button>
 
                 <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/10">
-                  <div className="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-sm font-bold text-white">
-                    {username.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-white font-medium hidden sm:block">
+                  <UserButton
+                    afterSignOutUrl="/"
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-sm font-bold text-white"
+                      }
+                    }}
+                    ref={userButtonRef}
+                  />
+                  <span
+                    className="text-white font-medium hidden sm:block cursor-pointer"
+                    onClick={() => {
+                      if (userButtonRef.current) {
+                        const btn = userButtonRef.current.querySelector('button');
+                        if (btn) btn.click();
+                      }
+                    }}
+                  >
                     {username.length > 10 ? `${username.substring(0, 10)}...` : username}
                   </span>
                 </div>
@@ -150,7 +163,7 @@ const DashboardLayout = ({ children }) => {
           <div className="flex-1 overflow-y-auto">{children}</div>
         </div>
       </div>
-    </AnimatedBackground>
+    </div>
   )
 }
 
