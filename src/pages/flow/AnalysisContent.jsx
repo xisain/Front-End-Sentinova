@@ -184,24 +184,22 @@ const AnalysisContent = () => {
               analysisDate: new Date().toLocaleString("id-ID"),
               totalReviews: data.total_reviews,
               processingTime: "Selesai",
-              summary: data.review_details[0].summary, // Using first summary as overall summary
+              summary: data.overall_summary,
               sentimentDistribution: data.sentiment_distribution,
               topKeywords: data.top_keywords,
-              reviewDetails: data.review_details.map(r => ({
-                id: r.id,
-                text: r.text,
-                sentiment: r.sentiment,
-                confidence: r.confidence,
-                color: r.sentiment === "Positive" ? "#10B981" : 
-                       r.sentiment === "Negative" ? "#EF4444" : "#6B7280"
+              reviewDetails: data.review_details.map(review => ({
+                text: review.text,
+                transformer: review.transformer,
+                ml: review.ml,
+                keywords: review.keywords
               }))
             }
           }
         })
       }
     } catch (error) {
-      console.error("Analysis failed:", error)
-      alert("Analisis gagal. Silakan coba lagi.")
+      console.error("Error during analysis:", error)
+      alert("Terjadi kesalahan saat menganalisis data. Silakan coba lagi.")
     } finally {
       setIsLoading(false)
     }
