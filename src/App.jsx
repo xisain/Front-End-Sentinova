@@ -1,9 +1,5 @@
-// App.jsx
-import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/home';
-import Login from "./pages/login";
-import Register from "./pages/Register";
 import Flow from "./pages/flow";
 import DashboardContent from "./pages/flow/DashboardContent";
 import AnalysisContent from "./pages/flow/AnalysisContent";
@@ -14,14 +10,14 @@ import SettingsContent from "./pages/flow/SettingsContent";
 import './App.css';
 import './index.css';
 import { SignIn, SignUp, SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import Auth from "./pages/auth";
 
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/login" element={<SignIn afterSignInUrl="/flow" />} />
-      <Route path="/register" element={<SignUp afterSignUpUrl="/flow" />} />
+      <Route path="/auth" element={<Auth />} />
       {/* Nested route for /flow */}
       <Route path="/flow" element={<Flow />}>
         <Route index element={<DashboardContent />} />

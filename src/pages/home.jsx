@@ -1,12 +1,11 @@
 import { useEffect, useState, useRef } from "react"
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"
 import { Canvas } from "@react-three/fiber"
 import { Stars } from "@react-three/drei"
-import { FiArrowRight, FiTarget, FiSmile, FiLock, FiLink } from "react-icons/fi"
+import { FiArrowRight, FiTarget, FiSmile, FiLock, FiLink, FiSettings, FiLogOut } from "react-icons/fi"
 import TiltCard from "./tiltcard"
 import { motion, useMotionTemplate, useMotionValue, animate } from "framer-motion"
-import { useUser } from "@clerk/clerk-react";
-import { SignInButton, SignUpButton } from "@clerk/clerk-react";
+import { useUser, useClerk } from "@clerk/clerk-react"
 
 // Expanded color palette for the entire site
 const COLORS_TOP = ["#13FFAA", "#1E67C6", "#CE84CF", "#DD335C"]
@@ -44,6 +43,126 @@ const AnimatedBackground = ({ children, className, speed = 10, colorIndex = 0 })
       </div>
       <div className="relative z-10">{children}</div>
     </motion.div>
+  )
+}
+
+// User Dropdown Component - Improved version
+const UserDropdown = () => {
+  const [isOpen, setIsOpen] = useState(false)
+  const { user } = useUser()
+  const { signOut } = useClerk()
+  const navigate = useNavigate()
+  const dropdownRef = useRef(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
+  const handleSignOut = async () => {
+    await signOut()
+    setIsOpen(false)
+  }
+
+  const handleDashboard = () => {
+    navigate("/flow")
+    setIsOpen(false)
+  }
+
+  const handleDashboardAnalysis = () => {
+    navigate("/flow/analysis")
+    setIsOpen(false)
+  }
+
+  // Get user initials for avatar fallback
+  const getInitials = () => {
+    if (user?.fullName) {
+      return user.fullName
+        .split(" ")
+        .map((name) => name[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2)
+    }
+
+    if (user?.username) {
+      return user.username.substring(0, 2).toUpperCase()
+    }
+
+    return "U"
+  }
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-2 rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300"
+      >
+        {user?.imageUrl ? (
+          <div className="w-8 h-8 rounded-full overflow-hidden">
+            <img
+              src={user.imageUrl || "/placeholder.svg"}
+              alt={user.fullName || user.username || "User"}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+            <span className="text-white text-sm font-medium">{getInitials()}</span>
+          </div>
+        )}
+        <span className="text-white text-sm font-medium hidden md:block">
+          {user?.firstName || user?.username?.split("@")[0] || "User"}
+        </span>
+        <svg
+          className={`w-4 h-4 text-white transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="absolute right-0 mt-2 w-64 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-xl z-50 overflow-hidden"
+        >
+          <div className="p-4 border-b border-white/10">
+            <p className="text-white font-medium truncate">{user?.fullName || user?.username}</p>
+            <p className="text-gray-400 text-sm truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+          </div>
+          <div className="p-2">
+            <button
+              onClick={handleDashboard}
+              className="w-full flex items-center gap-3 px-3 py-2 text-left text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <FiSettings className="w-4 h-4" />
+              Dashboard
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center gap-3 px-3 py-2 text-left text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+            >
+              <FiLogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </div>
   )
 }
 
@@ -160,6 +279,13 @@ const EnhancedHero = () => {
 
 // New Product Analysis Section Component
 const ProductAnalysisSection = () => {
+  const navigate = useNavigate()
+
+  // Pastikan handleDashboardAnalysis di sini, bukan dari UserDropdown
+  const handleDashboardAnalysis = () => {
+    navigate("/flow/analysis")
+  }
+
   return (
     <div className="py-24 relative overflow-hidden">
       {/* Background Effects */}
@@ -198,6 +324,7 @@ const ProductAnalysisSection = () => {
                 whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(59, 130, 246, 0.5)" }}
                 whileTap={{ scale: 0.95 }}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 rounded-xl text-lg font-medium flex items-center gap-2 transition-all duration-300 group"
+                onClick={handleDashboardAnalysis}
               >
                 Mulai Analisis
                 <FiArrowRight className="transition-transform group-hover:translate-x-1" />
@@ -458,9 +585,7 @@ const EnhancedFAQSection = () => {
                   openPanel === index ? "shadow-blue-500/10" : ""
                 }`}
               >
-                <div
-                  className="w-full flex items-center justify-between text-left focus:outline-none cursor-pointer"
-                >
+                <div className="w-full flex items-center justify-between text-left focus:outline-none cursor-pointer">
                   <span className="text-xl font-medium text-white group-hover:text-blue-300 transition-colors">
                     {faq.question}
                   </span>
@@ -505,16 +630,26 @@ const EnhancedFAQSection = () => {
 }
 
 export default function Home() {
-  const { isSignedIn, isLoaded } = useUser();
-  const navigate = useNavigate();
+  const { isSignedIn, isLoaded, user } = useUser()
+  const navigate = useNavigate()
 
+  // Tambahkan state untuk memastikan UI dirender ulang saat status auth berubah
+  const [authState, setAuthState] = useState({
+    isSignedIn: false,
+    isLoaded: false,
+  })
+
+  // Update state saat status auth berubah
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      navigate("/flow");
+    if (isLoaded) {
+      setAuthState({
+        isSignedIn,
+        isLoaded,
+      })
     }
-  }, [isLoaded, isSignedIn, navigate]);
+  }, [isSignedIn, isLoaded])
 
-return (
+  return (
     <AnimatedBackground className="min-h-screen">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 w-full z-20 bg-black/20 backdrop-blur-md shadow-none">
@@ -548,20 +683,34 @@ return (
           </button>
           <div className="hidden w-full md:block md:w-auto" id="navbar-default">
             <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 md:flex-row md:mt-0">
-              <li>
-                <SignInButton mode="modal" afterSignInUrl="/flow">
-                  <button className="text-white font-poppins text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center hover:bg-white/10 rounded-lg">
-                    Login
-                  </button>
-                </SignInButton>
-              </li>
-              <li>
-                <SignUpButton mode="modal" afterSignUpUrl="/flow">
-                  <button className="text-white bg-blue-600/80 hover:bg-blue-700/90 backdrop-blur-sm focus:ring-4 focus:outline-none focus:ring-blue-300/50 font-poppins rounded-lg text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center">
-                    Register
-                  </button>
-                </SignUpButton>
-              </li>
+              {isLoaded && (
+                <>
+                  {isSignedIn ? (
+                    <li>
+                      <UserDropdown />
+                    </li>
+                  ) : (
+                    <>
+                      <li>
+                        <Link
+                          to="/auth"
+                          className="text-white font-poppins text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center hover:bg-white/10 rounded-lg"
+                        >
+                          Sign In
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/auth"
+                          className="text-white bg-blue-600/80 hover:bg-blue-700/90 backdrop-blur-sm focus:ring-4 focus:outline-none focus:ring-blue-300/50 font-poppins rounded-lg text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center"
+                        >
+                          Sign Up
+                        </Link>
+                      </li>
+                    </>
+                  )}
+                </>
+              )}
             </ul>
           </div>
         </div>
