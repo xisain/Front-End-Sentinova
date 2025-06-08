@@ -84,51 +84,6 @@ const AnalysisContent = () => {
             }
           })
         )
-        
-        // Calculate overall statistics
-        const sentimentCounts = {
-          positive: 0,
-          neutral: 0,
-          negative: 0
-        }
-        
-        results.forEach(result => {
-          sentimentCounts[result.sentiment.label]++
-        })
-        
-        const total = results.length
-        const sentimentDistribution = [
-          { 
-            name: "Positif", 
-            value: Math.round((sentimentCounts.positive / total) * 100),
-            count: sentimentCounts.positive,
-            color: "#10B981" 
-          },
-          { 
-            name: "Netral", 
-            value: Math.round((sentimentCounts.neutral / total) * 100),
-            count: sentimentCounts.neutral,
-            color: "#6B7280" 
-          },
-          { 
-            name: "Negatif", 
-            value: Math.round((sentimentCounts.negative / total) * 100),
-            count: sentimentCounts.negative,
-            color: "#EF4444" 
-          }
-        ]
-        
-        // Combine all keywords
-        const allKeywords = results.flatMap(r => r.keywords)
-        const keywordCounts = {}
-        allKeywords.forEach(keyword => {
-          keywordCounts[keyword] = (keywordCounts[keyword] || 0) + 1
-        })
-        
-        const topKeywords = Object.entries(keywordCounts)
-          .map(([text, value]) => ({ text, value }))
-          .sort((a, b) => b.value - a.value)
-          .slice(0, 10)
 
         // Navigate to results with processed data
         navigate("/flow/analysis/results", {
@@ -145,13 +100,13 @@ const AnalysisContent = () => {
               summary: results[0].summary, // Using first summary as overall summary
               sentimentDistribution,
               topKeywords,
-              reviewDetails: results.map((r, index) => ({
+              reviewDetails: results.map((review, index) => ({
                 id: index + 1,
-                text: r.text,
-                sentiment: r.sentiment.label.charAt(0).toUpperCase() + r.sentiment.label.slice(1),
-                confidence: r.sentiment.score,
-                color: r.sentiment.label === "positive" ? "#10B981" : 
-                       r.sentiment.label === "negative" ? "#EF4444" : "#6B7280"
+                text: review.text,
+                sentiment: review.sentiment.label.charAt(0).toUpperCase() + review.sentiment.label.slice(1),
+                confidence: review.sentiment.score,
+                color: review.sentiment.label === "positive" ? "#10B981" : 
+                       review.sentiment.label === "negative" ? "#EF4444" : "#6B7280"
               }))
             }
           }

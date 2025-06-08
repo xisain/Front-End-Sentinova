@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://sentinova-backend-412208638292.asia-southeast1.run.app',
+        target: 'https://api.sentinova.my.id',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '')

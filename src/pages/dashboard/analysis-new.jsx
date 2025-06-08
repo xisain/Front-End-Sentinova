@@ -92,7 +92,7 @@ const AnalysisNew = () => {
       })
     } catch (error) {
       console.error("Analysis failed:", error)
-      alert("Analisis gagal. Silakan coba lagi.")
+      alert("Analisis gagal. Silakan coba lagi.") //GANTI POP UP
     } finally {
       setIsLoading(false)
     }

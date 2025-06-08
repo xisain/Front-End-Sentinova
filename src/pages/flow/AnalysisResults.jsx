@@ -28,53 +28,49 @@ const AnalysisResults = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // Mock data untuk Naive Bayes (sementara belum di-deploy)
-  const generateMockNaiveBayesData = (pretrainedData) => {
-    // Simulasi hasil yang sedikit berbeda dari pre-trained model
-    const mockSentimentDistribution = pretrainedData.sentimentDistribution.map((item) => ({
-      ...item,
-      value: Math.max(5, Math.min(85, item.value + (Math.random() - 0.5) * 20)), // Variasi ±10%
-      count: Math.floor(item.count * (0.9 + Math.random() * 0.2)), // Variasi count
-    }))
+  // Ubah fungsi processModelResults untuk menangani kedua model
+  const processModelResults = (modelData, modelType) => ({
+    productName: modelData.productName,
+    analysisDate: modelData.analysisDate,
+    totalReviews: modelData.totalReviews,
+    processingTime: modelData.processingTime,
+    accuracy: modelData.accuracy || 92,
+    sentimentDistribution: modelType === 'pretrained' 
+      ? modelData.sentimentDistribution.transformer.IndoBERT
+      : modelData.sentimentDistribution.ml.NaiveBayes,
+    topKeywords: modelData.topKeywords,
+    reviewDetails: modelData.reviewDetails.map((review) => {
+      // Ambil prediksi sesuai model
+      const preds = modelType === 'pretrained'
+        ? review.transformer?.IndoBERT?.predictions
+        : review.ml?.NaiveBayes?.predictions || [];
+      
+      // Cari prediksi dengan score tertinggi
+      const topPred = preds.reduce(
+        (max, cur) => (cur.score > max.score ? cur : max),
+        { label: "", score: 0 }
+      );
 
-    // Recalculate percentages to ensure they add up to 100
-    const totalCount = mockSentimentDistribution.reduce((sum, item) => sum + item.count, 0)
-    mockSentimentDistribution.forEach((item) => {
-      item.value = Math.round((item.count / totalCount) * 100)
-    })
+      // Mapping label ke frontend
+      const labelMap = {
+        positive: "Positive",
+        negative: "Negative",
+        neutral: "Neutral",
+      };
 
-    const mockKeywords = pretrainedData.topKeywords
-      .map((keyword) => ({
-        ...keyword,
-        value: Math.max(1, keyword.value + Math.floor((Math.random() - 0.5) * 10)),
-      }))
-      .sort((a, b) => b.value - a.value)
-
-    const mockReviewDetails = pretrainedData.reviewDetails.map((review) => ({
-      ...review,
-      confidence: Math.max(0.5, Math.min(0.99, review.confidence + (Math.random() - 0.5) * 0.3)),
-      // Occasionally change sentiment for some reviews to show difference
-      sentiment:
-        Math.random() > 0.85
-          ? review.sentiment === "Positive"
-            ? "Neutral"
-            : review.sentiment === "Negative"
-              ? "Neutral"
-              : review.sentiment
-          : review.sentiment,
-    }))
-
-    return {
-      productName: pretrainedData.productName,
-      analysisDate: pretrainedData.analysisDate,
-      totalReviews: pretrainedData.totalReviews,
-      processingTime: `${(Number.parseFloat(pretrainedData.processingTime) * 0.7).toFixed(1)}s`, // Naive Bayes biasanya lebih cepat
-      accuracy: Math.max(70, Math.min(90, pretrainedData.accuracy - 5 + Math.random() * 10)), // Sedikit berbeda akurasi
-      sentimentDistribution: mockSentimentDistribution,
-      topKeywords: mockKeywords,
-      reviewDetails: mockReviewDetails,
-    }
-  }
+      return {
+        ...review,
+        sentiment: labelMap[topPred.label] || "Neutral",
+        confidence: topPred.score,
+        color:
+          labelMap[topPred.label] === "Positive"
+            ? "#10B981"
+            : labelMap[topPred.label] === "Negative"
+            ? "#EF4444"
+            : "#6B7280",
+      };
+    }),
+  });
 
   useEffect(() => {
     if (!location.state?.results) {
@@ -84,50 +80,14 @@ const AnalysisResults = () => {
 
     const apiResults = location.state.results
 
-    // Process results for pretrained model
-    const processModelResults = (modelData) => ({
-      productName: modelData.productName,
-      analysisDate: modelData.analysisDate,
-      totalReviews: modelData.totalReviews,
-      processingTime: modelData.processingTime,
-      accuracy: modelData.accuracy || 85,
-      sentimentDistribution: modelData.sentimentDistribution,
-      topKeywords: modelData.topKeywords,
-      reviewDetails: modelData.reviewDetails.map((review) => ({
-        ...review,
-        color: review.sentiment === "Positive" ? "#10B981" : review.sentiment === "Negative" ? "#EF4444" : "#6B7280",
-      })),
-    })
-
-    // Check if we have real pretrained data or need to use fallback
-    let pretrainedResults
-    if (apiResults.pretrainedModel) {
-      pretrainedResults = processModelResults(apiResults.pretrainedModel)
-    } else {
-      // Fallback jika struktur data berbeda
-      pretrainedResults = processModelResults(apiResults)
-    }
-
-    // Generate mock Naive Bayes data
-    const naiveBayesResults = generateMockNaiveBayesData(pretrainedResults)
-
-    // Process Naive Bayes results with color mapping
-    const processedNaiveBayesResults = {
-      ...naiveBayesResults,
-      reviewDetails: naiveBayesResults.reviewDetails.map((review) => ({
-        ...review,
-        color: review.sentiment === "Positive" ? "#10B981" : review.sentiment === "Negative" ? "#EF4444" : "#6B7280",
-      })),
-    }
+    // Process results untuk kedua model
+    let pretrainedResults = processModelResults(apiResults, 'pretrained')
+    let naiveBayesResults = processModelResults(apiResults, 'naivebayes')
 
     setResults({
       pretrained: pretrainedResults,
-      naivebayes: processedNaiveBayesResults,
-      // Summary yang sama untuk kedua model
-      summary:
-        apiResults.summary ||
-        pretrainedResults.summary ||
-        "Analisis sentimen telah selesai dilakukan terhadap ulasan produk ini. Hasil menunjukkan distribusi sentimen yang dapat membantu dalam memahami persepsi pelanggan terhadap produk.",
+      naivebayes: naiveBayesResults,
+      summary: apiResults.summary || "Analisis sentimen telah selesai dilakukan...",
       comparison: {
         accuracyComparison: [
           { model: "Pre-trained", accuracy: pretrainedResults.accuracy },
