@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FiUpload, FiFileText, FiArrowRight, FiX, FiCheck } from "react-icons/fi"
 import { api } from "../../services/api"
+import { useUser } from "@clerk/clerk-react"
+import { saveAnalysisData } from "../../services/analysisService"
 
 const AnalysisContent = () => {
   const [analysisType, setAnalysisType] = useState("file") // 'file' or 'text'
@@ -12,6 +14,7 @@ const AnalysisContent = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const navigate = useNavigate()
+  const { user } = useUser()
 
   const handleFileSelect = (file) => {
     if (file && (file.type === "text/csv" || file.type.includes("sheet"))) {
@@ -63,13 +66,14 @@ const AnalysisContent = () => {
 
     try {
       let analysisResults = []
+      let results = null
       
       if (analysisType === "text") {
         // Split text into individual reviews (assuming each review is separated by newlines)
         const reviews = textInput.split(/\n+/).filter(text => text.trim())
         
         // Process each review
-        const results = await Promise.all(
+        results = await Promise.all(
           reviews.map(async (text) => {
             const [sentimentResponse, summaryResponse] = await Promise.all([
               api.post('/sentiment', { text }),
@@ -85,32 +89,51 @@ const AnalysisContent = () => {
           })
         )
 
-        // Navigate to results with processed data
+        const processedResults = {
+          productName,
+          analysisDate: new Date().toLocaleString("id-ID"),
+          totalReviews: results.length,
+          processingTime: "Selesai",
+          summary: results[0].summary, // Using first summary as overall summary
+          sentimentDistribution: {
+            transformer: {
+              IndoBERT: results.reduce((acc, review) => {
+                const sentiment = review.sentiment.label;
+                acc[sentiment] = (acc[sentiment] || 0) + 1;
+                return acc;
+              }, {})
+            }
+          },
+          reviewDetails: results.map((review, index) => ({
+            id: index + 1,
+            text: review.text,
+            transformer: {
+              IndoBERT: {
+                predictions: [{
+                  label: review.sentiment.label,
+                  score: review.sentiment.score
+                }]
+              }
+            },
+            keywords: review.keywords
+          }))
+        };
+
+        // Save to Firestore
+        if (user) {
+          await saveAnalysisData(user.id, processedResults);
+        }
+
+        // Navigate to results
         navigate("/flow/analysis/results", {
           state: {
             analysisId: Date.now().toString(),
             productName: productName,
             analysisType: analysisType,
             timestamp: new Date().toISOString(),
-            results: {
-              productName,
-              analysisDate: new Date().toLocaleString("id-ID"),
-              totalReviews: total,
-              processingTime: "Selesai",
-              summary: results[0].summary, // Using first summary as overall summary
-              sentimentDistribution,
-              topKeywords,
-              reviewDetails: results.map((review, index) => ({
-                id: index + 1,
-                text: review.text,
-                sentiment: review.sentiment.label.charAt(0).toUpperCase() + review.sentiment.label.slice(1),
-                confidence: review.sentiment.score,
-                color: review.sentiment.label === "positive" ? "#10B981" : 
-                       review.sentiment.label === "negative" ? "#EF4444" : "#6B7280"
-              }))
-            }
+            results: processedResults
           }
-        })
+        });
       } else {
         // Handle file upload case
         const formData = new FormData()
@@ -126,31 +149,38 @@ const AnalysisContent = () => {
         if (data.error) {
           throw new Error(data.error)
         }
+
+        const processedResults = {
+          productName,
+          analysisDate: new Date().toLocaleString("id-ID"),
+          totalReviews: data.total_reviews,
+          processingTime: "Selesai",
+          summary: data.overall_summary,
+          sentimentDistribution: data.sentiment_distribution,
+          topKeywords: data.top_keywords,
+          reviewDetails: data.review_details.map(review => ({
+            text: review.text,
+            transformer: review.transformer,
+            ml: review.ml,
+            keywords: review.keywords
+          }))
+        };
         
-        // Navigate to results with processed data
+        // Save to Firestore
+        if (user) {
+          await saveAnalysisData(user.id, processedResults);
+        }
+
+        // Navigate to results
         navigate("/flow/analysis/results", {
           state: {
             analysisId: Date.now().toString(),
             productName: productName,
             analysisType: analysisType,
             timestamp: new Date().toISOString(),
-            results: {
-              productName,
-              analysisDate: new Date().toLocaleString("id-ID"),
-              totalReviews: data.total_reviews,
-              processingTime: "Selesai",
-              summary: data.overall_summary,
-              sentimentDistribution: data.sentiment_distribution,
-              topKeywords: data.top_keywords,
-              reviewDetails: data.review_details.map(review => ({
-                text: review.text,
-                transformer: review.transformer,
-                ml: review.ml,
-                keywords: review.keywords
-              }))
-            }
+            results: processedResults
           }
-        })
+        });
       }
     } catch (error) {
       console.error("Error during analysis:", error)

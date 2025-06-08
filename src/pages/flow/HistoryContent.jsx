@@ -1,105 +1,136 @@
-import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
+import { getAnalysisHistory } from "../../services/analysisService";
+import { FiClock, FiPackage, FiBarChart2, FiChevronRight } from "react-icons/fi";
+import { motion } from "framer-motion";
 
-const DUMMY_HISTORY = [
-  {
-    id: "dummy-product-2025-05-21-pretrained",
-    title: "Produk Dummy (Pre-trained)",
-    date: "2025-05-21",
-    count: 99,
-    model: "pretrained",
-    details: {
-      productName: "Produk Dummy",
-      analysisDate: "2025-05-21",
-      totalReviews: 99,
-      processingTime: "2.1",
-      accuracy: 88,
-      sentimentDistribution: [
-        { name: "Positif", value: 70, count: 69, color: "#10B981" },
-        { name: "Netral", value: 20, count: 20, color: "#6B7280" },
-        { name: "Negatif", value: 10, count: 10, color: "#EF4444" }
-      ],
-      topKeywords: [
-        { text: "bagus", value: 20 },
-        { text: "murah", value: 15 },
-        { text: "cepat", value: 10 }
-      ],
-      reviewDetails: [
-        { id: 1, text: "Produk sangat bagus!", sentiment: "Positif", confidence: 0.95, color: "#10B981" },
-        { id: 2, text: "Cukup baik, tapi pengiriman lama.", sentiment: "Netral", confidence: 0.7, color: "#6B7280" },
-        { id: 3, text: "Tidak sesuai deskripsi.", sentiment: "Negatif", confidence: 0.8, color: "#EF4444" }
-      ]
-    }
-  }
-]
-
-function HistoryContent() {
-  const [history, setHistory] = useState([])
-  const navigate = useNavigate()
-
-  const loadHistory = () => {
-    let data = JSON.parse(localStorage.getItem("analysis_history") || "[]")
-    if (data.length === 0) {
-      localStorage.setItem("analysis_history", JSON.stringify(DUMMY_HISTORY))
-      data = DUMMY_HISTORY
-    }
-    setHistory(data)
-  }
+const HistoryContent = () => {
+  const [analysisHistory, setAnalysisHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { user } = useUser();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    loadHistory()
-  }, [])
+    const fetchAnalysisHistory = async () => {
+      if (!user) return;
 
-  const handleDetail = (item) => {
-    if (item.details) {
-      navigate("/flow/analysis/results", { state: { results: item.details, fromHistory: true } })
-    } else {
-      alert("Data detail tidak tersedia untuk riwayat ini.")
-    }
+      try {
+        const history = await getAnalysisHistory(user.id);
+        setAnalysisHistory(history);
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching analysis history:", error);
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAnalysisHistory();
+  }, [user]);
+
+  const handleViewAnalysis = (analysis) => {
+    navigate("/flow/analysis/results", {
+      state: {
+        analysisId: analysis.id,
+        productName: analysis.productName,
+        analysisType: "history",
+        timestamp: analysis.timestamp,
+        results: analysis
+      }
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-white text-lg">Memuat riwayat analisis...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const handleDelete = (id) => {
-    const filtered = history.filter(item => item.id !== id)
-    localStorage.setItem("analysis_history", JSON.stringify(filtered))
-    setHistory(filtered)
+  if (error) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 text-red-500 mx-auto mb-4">
+              <FiBarChart2 className="w-full h-full" />
+            </div>
+            <p className="text-white text-lg mb-2">Gagal memuat riwayat analisis</p>
+            <p className="text-red-400">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (analysisHistory.length === 0) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 text-gray-400 mx-auto mb-4">
+              <FiBarChart2 className="w-full h-full" />
+            </div>
+            <p className="text-white text-lg mb-2">Belum ada riwayat analisis</p>
+            <p className="text-gray-400">Mulai analisis baru untuk melihat hasilnya di sini</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 text-white">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">Riwayat Analisis</h2>
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Riwayat Analisis</h1>
+        <p className="text-gray-400">Lihat hasil analisis yang telah dilakukan sebelumnya</p>
       </div>
-      {history.length === 0 ? (
-        <div className="text-gray-400">Belum ada riwayat analisis.</div>
-      ) : (
-        <ul className="space-y-4">
-          {history.map((item) => (
-            <li
-              key={item.id}
-              className="bg-white/10 p-4 rounded-lg backdrop-blur-sm border border-white/10 flex justify-between items-center hover:bg-white/20 transition group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="cursor-pointer" onClick={() => handleDetail(item)}>
-                  <h3 className="font-semibold">{item.title.replace(/ \(Pre-trained\)| \(Naive Bayes\)/, "")}</h3>
-                  <p className="text-sm text-gray-300">{item.date}</p>
+
+      <div className="grid gap-6">
+        {analysisHistory.map((analysis) => (
+          <motion.div
+            key={analysis.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-colors cursor-pointer"
+            onClick={() => handleViewAnalysis(analysis)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-white">{analysis.productName}</h3>
+                <div className="flex items-center gap-4 text-sm text-gray-400">
+                  <div className="flex items-center gap-1">
+                    <FiClock className="w-4 h-4" />
+                    <span>{new Date(analysis.timestamp).toLocaleDateString("id-ID", {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <FiPackage className="w-4 h-4" />
+                    <span>{analysis.totalReviews} ulasan</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-300">{item.count} ulasan</span>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="ml-2 text-red-400 hover:text-red-600 transition text-sm font-medium"
-                  title="Hapus riwayat ini"
-                >
-                  Hapus
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+              <FiChevronRight className="w-6 h-6 text-gray-400" />
+            </div>
+          </motion.div>
+        ))}
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default HistoryContent
+export default HistoryContent;
