@@ -9,21 +9,17 @@ import {
   FiLogOut,
   FiChevronLeft,
   FiChevronRight,
+  FiHome,
 } from "react-icons/fi";
 import { useClerk } from "@clerk/clerk-react"; // Clerk auth
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile, setIsMobileOpen, isMobileOpen }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useClerk(); // Clerk signOut
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate("/"); // redirect setelah logout
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
+  const handleBackHome = () => {
+    navigate("/");
+    if (isMobile) setIsMobileOpen(false);
   };
 
   const navItems = [
@@ -99,12 +95,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile, setIsMobileOpen, isMob
       {/* Logout */}
       <div className="p-4 mt-auto border-t border-white/10">
         <button
-          onClick={handleLogout}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 ${
+          onClick={handleBackHome}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-green-400 hover:bg-green-500/10 hover:text-green-300 transition-all duration-200 ${
             isCollapsed ? "justify-center" : ""
           }`}
         >
-          <FiLogOut className="text-lg flex-shrink-0" />
+          <FiHome className="text-lg flex-shrink-0" />
           <AnimatePresence>
             {!isCollapsed && (
               <motion.span
@@ -114,7 +110,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile, setIsMobileOpen, isMob
                 transition={{ duration: 0.2 }}
                 className="whitespace-nowrap overflow-hidden"
               >
-                Logout
+                Back to Home
               </motion.span>
             )}
           </AnimatePresence>

@@ -37,7 +37,8 @@ const DashboardContent = () => {
   }, [])
 
   return (
-    <div className="p-6 space-y-8">
+    // Tambahkan pt-20 agar konten turun lebih jauh ke bawah, tidak menutupi dropdown profile
+    <div className="p-6 pt-20 space-y-8">
       {/* Welcome section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
