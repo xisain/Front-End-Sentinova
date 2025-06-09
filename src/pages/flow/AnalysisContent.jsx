@@ -139,12 +139,7 @@ const AnalysisContent = () => {
         const formData = new FormData()
         formData.append("file", selectedFile)
         
-        const response = await fetch('/api/analyze_csv', {
-          method: 'POST',
-          body: formData,
-        })
-        
-        const data = await response.json()
+        const data = await api.postFormData('/analyze_csv', formData);
         
         if (data.error) {
           throw new Error(data.error)

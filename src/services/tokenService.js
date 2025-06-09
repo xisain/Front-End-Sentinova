@@ -1,6 +1,6 @@
 import { auth } from '../js/firebase-init';
 import { signInWithCustomToken } from 'firebase/auth';
-
+import { api } from './api';
 class TokenManager {
   constructor() {
     // Store tokens with their expiry time
@@ -126,20 +126,7 @@ class TokenManager {
     console.log('Menggunakan Versi Terbaru dari get-firebase-token');
     try {
       const clerkToken = await window.Clerk.session.getToken();
-      const response = await fetch('https://api.sentinova.my.id/get-firebase-token', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${clerkToken}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to get Firebase token');
-      }
-
-      const { token } = await response.json();
+      const { token } = await api.getWithAuth('/get-firebase-token', clerkToken);
       
       // Store the new token
       this.storeToken(userId, token);

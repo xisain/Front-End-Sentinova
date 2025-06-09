@@ -9,7 +9,7 @@ export default defineConfig({
       '/api': {
         target: 'https://api.sentinova.my.id',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
     }

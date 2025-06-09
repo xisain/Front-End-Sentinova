@@ -1,6 +1,7 @@
 import { db, auth, app } from '../js/firebase-init';
 import { doc, setDoc, collection, query, getDocs, orderBy } from 'firebase/firestore';
 import tokenManager from './tokenService';
+import { api } from './api';
 
 /**
  * Waits for Firebase authentication to be ready
@@ -26,13 +27,7 @@ const authenticateWithFirebase = async (clerkUserId) => {
   console.log('Got Clerk token:', clerkToken.substring(0, 20) + '...');
 
   // Get Firebase token
-  const getToken = await fetch('/api/get-firebase-token', {
-    headers: {
-      'Authorization': `Bearer ${clerkToken}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    }
-  });
+  const getToken = await api.getWithAuth('/get-firebase-token', clerkToken);
 
   if (!getToken.ok) {
     throw new Error(`Failed to get Firebase token: ${getToken.status}`);
