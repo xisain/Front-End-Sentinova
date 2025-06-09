@@ -126,7 +126,7 @@ class TokenManager {
     console.log('Menggunakan Versi Terbaru dari get-firebase-token');
     try {
       const clerkToken = await window.Clerk.session.getToken();
-      const response = await fetch('https://api.sentinova.my.id/get-firebase-token/', {
+      const response = await fetch('https://api.sentinova.my.id/get-firebase-token', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${clerkToken}`,
