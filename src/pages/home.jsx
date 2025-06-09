@@ -520,7 +520,7 @@ return (
       <nav className="fixed top-0 left-0 w-full z-20 bg-black/20 backdrop-blur-md shadow-none">
         <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-3">
           <Link to="/" className="flex items-center space-x-3">
-            <img src="/image/Sentinova.png" className="h-9" alt="Sentinova Logo" />
+            <img src="/Sentinova.png" className="h-9" alt="Sentinova Logo" />
           </Link>
           <button
             data-collapse-toggle="navbar-default"
@@ -659,7 +659,7 @@ return (
       <footer className="border-t border-white/10 py-12 backdrop-blur-md">
         <div className="max-w-6xl mx-auto text-center px-4">
           <div className="flex items-center justify-center space-x-2 mb-6">
-            <img src="/image/Sentinova.png" className="h-8" alt="Sentinova Logo" />
+            <img src="/Sentinova.png" className="h-8" alt="Sentinova Logo" />
           </div>
           <p className="text-gray-400 mb-6">Platform AI untuk analisis sentimen dan summarization.</p>
           <div className="flex justify-center space-x-6 mb-8">
