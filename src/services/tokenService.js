@@ -123,6 +123,7 @@ class TokenManager {
 
     // Get new token if not found or expired
     console.log('Getting new Firebase token for user:', userId);
+    console.log('Menggunakan Versi Terbaru dari get-firebase-token');
     try {
       const clerkToken = await window.Clerk.session.getToken();
       const response = await fetch('https://api.sentinova.my.id/get-firebase-token/', {
