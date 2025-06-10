@@ -3,15 +3,55 @@ import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FiUpload, FiFileText, FiArrowRight, FiX, FiCheck } from "react-icons/fi"
 import { api } from "../../services/api"
+import { useAuth } from '@clerk/clerk-react'
+import { collection, addDoc } from "firebase/firestore"
+import { signInWithCustomToken } from "firebase/auth"
+import { db, auth } from "../../firebaseConfig/config"
 
 const AnalysisContent = () => {
-  const [analysisType, setAnalysisType] = useState("file") // 'file' or 'text'
+  const [analysisType, setAnalysisType] = useState("file")
   const [productName, setProductName] = useState("")
   const [textInput, setTextInput] = useState("")
   const [selectedFile, setSelectedFile] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const navigate = useNavigate()
+  
+  // Clerk authentication
+  const { getToken, userId } = useAuth()
+
+  // Function to authenticate with Firebase using Clerk token
+  const signIntoFirebaseWithClerk = async () => {
+    const token = await getToken({ template: 'integration_firebase' })
+    const userCredentials = await signInWithCustomToken(auth, token || '')
+    return userCredentials
+  }
+
+  // Function to store analysis results in Firestore
+  const storeAnalysisInFirestore = async (analysisData) => {
+    if (!userId) return null
+    
+    try {
+      await signIntoFirebaseWithClerk()
+      
+      const historyRef = collection(db, 'historyAnalysis')
+      const docRef = await addDoc(historyRef, {
+        userId: userId, // Clerk user ID
+        productName: analysisData.productName,
+        analysisType: analysisData.analysisType,
+        timestamp: new Date(),
+        analysisId: analysisData.analysisId,
+        results: analysisData.results,
+        createdAt: new Date().toISOString()
+      })
+      
+      console.log("Analysis stored with ID: ", docRef.id)
+      return docRef.id
+    } catch (error) {
+      console.error("Error storing analysis:", error)
+      return null
+    }
+  }
 
   const handleFileSelect = (file) => {
     if (file && (file.type === "text/csv" || file.type.includes("sheet"))) {
@@ -44,6 +84,11 @@ const AnalysisContent = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    if (!userId) {
+      alert("You need to sign in with Clerk to access this page.")
+      return
+    }
+
     if (!productName.trim()) {
       alert("Nama produk harus diisi")
       return
@@ -63,12 +108,12 @@ const AnalysisContent = () => {
 
     try {
       let analysisResults = []
+      const analysisId = Date.now().toString()
+      const timestamp = new Date().toISOString()
       
       if (analysisType === "text") {
-        // Split text into individual reviews (assuming each review is separated by newlines)
         const reviews = textInput.split(/\n+/).filter(text => text.trim())
         
-        // Process each review
         const results = await Promise.all(
           reviews.map(async (text) => {
             const [sentimentResponse, summaryResponse] = await Promise.all([
@@ -85,34 +130,35 @@ const AnalysisContent = () => {
           })
         )
 
-        // Navigate to results with processed data
-        navigate("/flow/analysis/results", {
-          state: {
-            analysisId: Date.now().toString(),
-            productName: productName,
-            analysisType: analysisType,
-            timestamp: new Date().toISOString(),
-            results: {
-              productName,
-              analysisDate: new Date().toLocaleString("id-ID"),
-              totalReviews: total,
-              processingTime: "Selesai",
-              summary: results[0].summary, // Using first summary as overall summary
-              sentimentDistribution,
-              topKeywords,
-              reviewDetails: results.map((review, index) => ({
-                id: index + 1,
-                text: review.text,
-                sentiment: review.sentiment.label.charAt(0).toUpperCase() + review.sentiment.label.slice(1),
-                confidence: review.sentiment.score,
-                color: review.sentiment.label === "positive" ? "#10B981" : 
-                       review.sentiment.label === "negative" ? "#EF4444" : "#6B7280"
-              }))
-            }
+        const analysisData = {
+          analysisId,
+          productName,
+          analysisType,
+          timestamp,
+          results: {
+            productName,
+            analysisDate: new Date().toLocaleString("id-ID"),
+            totalReviews: results.length,
+            processingTime: "Selesai",
+            summary: results[0]?.summary,
+            reviewDetails: results.map((review, index) => ({
+              id: index + 1,
+              text: review.text,
+              sentiment: review.sentiment.label.charAt(0).toUpperCase() + review.sentiment.label.slice(1),
+              confidence: review.sentiment.score,
+              color: review.sentiment.label === "positive" ? "#10B981" : 
+                     review.sentiment.label === "negative" ? "#EF4444" : "#6B7280"
+            }))
           }
-        })
+        }
+
+        // Store in Firestore
+        await storeAnalysisInFirestore(analysisData)
+
+        // Navigate to results
+        navigate("/flow/analysis/results", { state: analysisData })
+
       } else {
-        // Handle file upload case
         const formData = new FormData()
         formData.append("file", selectedFile)
         
@@ -126,31 +172,34 @@ const AnalysisContent = () => {
         if (data.error) {
           throw new Error(data.error)
         }
-        
-        // Navigate to results with processed data
-        navigate("/flow/analysis/results", {
-          state: {
-            analysisId: Date.now().toString(),
-            productName: productName,
-            analysisType: analysisType,
-            timestamp: new Date().toISOString(),
-            results: {
-              productName,
-              analysisDate: new Date().toLocaleString("id-ID"),
-              totalReviews: data.total_reviews,
-              processingTime: "Selesai",
-              summary: data.overall_summary,
-              sentimentDistribution: data.sentiment_distribution,
-              topKeywords: data.top_keywords,
-              reviewDetails: data.review_details.map(review => ({
-                text: review.text,
-                transformer: review.transformer,
-                ml: review.ml,
-                keywords: review.keywords
-              }))
-            }
+
+        const analysisData = {
+          analysisId,
+          productName,
+          analysisType,
+          timestamp,
+          results: {
+            productName,
+            analysisDate: new Date().toLocaleString("id-ID"),
+            totalReviews: data.total_reviews,
+            processingTime: "Selesai",
+            summary: data.overall_summary,
+            sentimentDistribution: data.sentiment_distribution,
+            topKeywords: data.top_keywords,
+            reviewDetails: data.review_details.map(review => ({
+              text: review.text,
+              transformer: review.transformer,
+              ml: review.ml,
+              keywords: review.keywords
+            }))
           }
-        })
+        }
+
+        // Store in Firestore
+        await storeAnalysisInFirestore(analysisData)
+
+        // Navigate to results
+        navigate("/flow/analysis/results", { state: analysisData })
       }
     } catch (error) {
       console.error("Error during analysis:", error)
@@ -160,8 +209,14 @@ const AnalysisContent = () => {
     }
   }
 
+  // Check if user is signed in
+  if (!userId) {
+    return <p>You need to sign in with Clerk to access this page.</p>
+  }
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      {/* Rest of your existing JSX remains the same */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Analisis Baru</h1>
         <p className="text-gray-400">Upload file atau masukkan teks untuk menganalisis sentimen ulasan produk</p>
