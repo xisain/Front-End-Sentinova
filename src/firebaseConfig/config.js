@@ -4,16 +4,15 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAoGhUmNUxG6IaI8Z2uu7Qiq5WbVhBDXG4",
-  authDomain: "sentinova.firebaseapp.com",
-  projectId: "sentinova",
-  storageBucket: "sentinova.firebasestorage.app",
-  messagingSenderId: "412208638292",
-  appId: "1:412208638292:web:56a77905074fbbed9f00c1",
-  measurementId: "G-TQCLH643PZ"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 // const db = getFirestore(app);

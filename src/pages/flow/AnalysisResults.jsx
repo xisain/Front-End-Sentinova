@@ -144,7 +144,7 @@ const AnalysisResults = () => {
 
   const handleItemsPerPageChange = (newItemsPerPage) => {
     setItemsPerPage(newItemsPerPage)
-    setCurrentPage(1) // Reset to first page
+    setCurrentPage(1)
   }
 
   const ModelSelector = () => (
