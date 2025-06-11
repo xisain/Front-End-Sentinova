@@ -153,3 +153,55 @@ const TiltCard = ({ icon, title, description, className }) => {
 }
 
 export default TiltCard
+
+
+
+
+// {/* Quick Actions */}
+// <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+// <h2 className="text-xl font-bold text-white mb-4">Aksi Cepat</h2>
+// <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+//   <Link to="/flow/analysis">
+//     <motion.div
+//       whileHover={{ y: -5 }}
+//       className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex flex-col items-center gap-3 cursor-pointer"
+//     >
+//       <div className="p-3 rounded-full bg-blue-500/20">
+//         <FiUpload className="text-blue-400 text-xl" />
+//       </div>
+//       <span className="text-white font-medium">Upload CSV</span>
+//     </motion.div>
+//   </Link>
+//   <Link to="/flow/reports">
+//     <motion.div
+//       whileHover={{ y: -5 }}
+//       className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex flex-col items-center gap-3 cursor-pointer"
+//     >
+//       <div className="p-3 rounded-full bg-green-500/20">
+//         <FiFileText className="text-green-400 text-xl" />
+//       </div>
+//       <span className="text-white font-medium">Buat Laporan</span>
+//     </motion.div>
+//   </Link>
+//   <Link to="/flow/history">
+//     <motion.div
+//       whileHover={{ y: -5 }}
+//       className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex flex-col items-center gap-3 cursor-pointer"
+//     >
+//       <div className="p-3 rounded-full bg-purple-500/20">
+//         <FiSearch className="text-purple-400 text-xl" />
+//       </div>
+//       <span className="text-white font-medium">Cari Analisis</span>
+//     </motion.div>
+//   </Link>
+//   <motion.div
+//     whileHover={{ y: -5 }}
+//     className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex flex-col items-center gap-3 cursor-pointer"
+//   >
+//     <div className="p-3 rounded-full bg-yellow-500/20">
+//       <FiDownload className="text-yellow-400 text-xl" />
+//     </div>
+//     <span className="text-white font-medium">Download Data</span>
+//   </motion.div>
+// </div>
+// </div>

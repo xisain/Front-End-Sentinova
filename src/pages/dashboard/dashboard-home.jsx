@@ -7,16 +7,17 @@ import {
   FiList,
   FiPlus,
   FiArrowRight,
-  FiRefreshCw
+  FiRefreshCw,
 } from "react-icons/fi"
 
-import { collection, getDocs, query } from "firebase/firestore"
+import { collection, getDocs, query, where, orderBy } from "firebase/firestore"
+import { signInWithCustomToken } from "firebase/auth"
 import { db, auth } from "../../firebaseConfig/config"
-import { onAuthStateChanged } from "firebase/auth"
-import HistoryCard from "../history/HistoryContent" // sesuaikan path jika perlu
-import { useNotification } from "../flow/NotificationContext"
 
-const StatCard = ({ title, value, icon, color, change, isLoading }) => (
+import { useAuth } from "@clerk/clerk-react"
+import HistoryCard from "../history/HistoryContent"
+
+const StatCard = ({ title, value, icon, color, isLoading }) => (
   <motion.div
     whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)" }}
     className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 relative overflow-hidden"
@@ -35,82 +36,92 @@ const StatCard = ({ title, value, icon, color, change, isLoading }) => (
           <div className={`p-2 rounded-lg ${color} bg-opacity-20`}>{icon}</div>
         </div>
         <p className="text-3xl font-bold text-white mb-2">{value}</p>
-        {change && (
-          <div className="flex items-center gap-1">
-            <span
-              className={`text-sm font-medium ${
-                change.startsWith("+") ? "text-green-400" : change.startsWith("-") ? "text-red-400" : "text-gray-400"
-              }`}
-            >
-              {change}
-            </span>
-            <span className="text-gray-400 text-sm">dari bulan lalu</span>
-          </div>
-        )}
       </>
     )}
   </motion.div>
 )
 
 const DashboardHome = () => {
-  const [isLoading, setIsLoading] = useState(true)
+  const [userId, setUserId] = useState(null)
   const [recentAnalyses, setRecentAnalyses] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [totalPositif, setTotalPositif] = useState(0)
+  const [totalNegatif, setTotalNegatif] = useState(0)
   const navigate = useNavigate()
-  const { addNotification } = useNotification()
 
-  useEffect(() => {
-    const fetchAnalyses = async () => {
-      setIsLoading(true)
+  const { getToken, isSignedIn } = useAuth()
 
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) return
+  const signIntoFirebaseWithClerk = async () => {
+    try {
+      const token = await getToken({ template: "integration_firebase" })
+      if (token) {
+        await signInWithCustomToken(auth, token)
+      }
+    } catch (err) {
+      console.error("Gagal login Firebase dengan Clerk:", err)
+    }
+  }
 
-        try {
-          const userId = user.uid
-          const q = query(collection(db, "historyAnalysis", userId, "analysis_result"))
-          const querySnapshot = await getDocs(q)
+  const fetchAnalyses = async (uid) => {
+    setIsLoading(true)
+    try {
+      const q = query(
+        collection(db, "historyAnalysis"),
+        where("userId", "==", uid),
+        orderBy("timestamp", "desc")
+      )
+      const snapshot = await getDocs(q)
 
-          const data = querySnapshot.docs.map((doc) => {
-            const item = doc.data()
-            const timestamp = item.timestamp?.toDate?.() || new Date()
-
-            return {
-              id: doc.id,
-              productName: item.productName || "Produk",
-              date: timestamp.toLocaleDateString("id-ID"),
-              time: timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-              count: item.results?.totalReviews || 0,
-              timestamp: timestamp,
-              results: {
-                reviewDetails: item.results?.reviewDetails || [],
-                totalReviews: item.results?.totalReviews || 0
-              }
-            }
-          })
-
-          data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-          setRecentAnalyses(data.slice(0, 4))
-        } catch (error) {
-          console.error("Gagal mengambil data Firestore:", error)
-        } finally {
-          setIsLoading(false)
+      const data = snapshot.docs.map((doc) => {
+        const item = doc.data()
+        const timestamp = item.timestamp?.toDate?.() || new Date()
+        return {
+          id: doc.id,
+          productName: item.productName || "Produk",
+          date: timestamp.toLocaleDateString("id-ID"),
+          time: timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+          timestamp,
+          count: item.results?.totalReviews || 0,
+          results: {
+            reviewDetails: item.results?.reviewDetails || [],
+            totalReviews: item.results?.totalReviews || 0,
+          },
         }
       })
+
+      data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      setRecentAnalyses(data.slice(0, 4))
+
+      // Hitung sentimen
+      const allReviews = data.flatMap((d) => d.results.reviewDetails || [])
+      const positif = allReviews.filter(r => r.sentiment?.toLowerCase() === "positive").length
+      const negatif = allReviews.filter(r => r.sentiment?.toLowerCase() === "negative").length
+      setTotalPositif(positif)
+      setTotalNegatif(negatif)
+    } catch (err) {
+      console.error("Gagal mengambil data analisis:", err)
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    fetchAnalyses()
-  }, [])
-
-  const totalPositif = recentAnalyses.reduce((count, a) => {
-    return count + a.results.reviewDetails.filter(r => r.sentiment?.toLowerCase() === "positive").length
-  }, 0)
-
-  const totalNegatif = recentAnalyses.reduce((count, a) => {
-    return count + a.results.reviewDetails.filter(r => r.sentiment?.toLowerCase() === "negative").length
-  }, 0)
+  // Sinkronisasi Clerk → Firebase dan fetch data
+  useEffect(() => {
+    const init = async () => {
+      if (!isSignedIn) return
+      await signIntoFirebaseWithClerk()
+      const user = auth.currentUser
+      if (user?.uid) {
+        setUserId(user.uid)
+        await fetchAnalyses(user.uid)
+      }
+    }
+    init()
+  }, [isSignedIn])
 
   return (
     <div className="p-6 space-y-8">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Dashboard</h1>
@@ -130,6 +141,7 @@ const DashboardHome = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={() => userId && fetchAnalyses(userId)}
             className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
             <FiRefreshCw />
@@ -138,13 +150,13 @@ const DashboardHome = () => {
         </div>
       </div>
 
+      {/* Statistik */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Analisis"
           value={recentAnalyses.length}
           icon={<FiBarChart2 className="text-blue-400" />}
           color="bg-blue-500"
-          change=""
           isLoading={isLoading}
         />
         <StatCard
@@ -152,7 +164,6 @@ const DashboardHome = () => {
           value={totalPositif}
           icon={<FiPieChart className="text-green-400" />}
           color="bg-green-500"
-          change=""
           isLoading={isLoading}
         />
         <StatCard
@@ -160,7 +171,6 @@ const DashboardHome = () => {
           value={totalNegatif}
           icon={<FiPieChart className="text-red-400" />}
           color="bg-red-500"
-          change=""
           isLoading={isLoading}
         />
         <StatCard
@@ -168,11 +178,11 @@ const DashboardHome = () => {
           value={recentAnalyses.reduce((sum, a) => sum + a.count, 0)}
           icon={<FiList className="text-purple-400" />}
           color="bg-purple-500"
-          change=""
           isLoading={isLoading}
         />
       </div>
 
+      {/* Analisis Terbaru */}
       <div>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-white">Analisis Terbaru</h2>
@@ -187,14 +197,14 @@ const DashboardHome = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {isLoading
-            ? Array(4).fill(0).map((_, i) => (
+            ? [...Array(4)].map((_, i) => (
                 <div key={i} className="bg-white/10 p-6 rounded-xl animate-pulse h-48" />
               ))
-            : recentAnalyses.map((item) => (
+            : analyses.map((item) => (
                 <HistoryCard
                   key={item.id}
                   item={item}
-                  onView={(data) => {
+                  onView={() => {
                     const analysisData = {
                       analysisId: item.id,
                       productName: item.productName,
@@ -206,7 +216,7 @@ const DashboardHome = () => {
                       state: analysisData,
                     })
                   }}
-                  onDelete={() => addNotification("Penghapusan hanya tersedia di halaman Riwayat", "info")}
+                  onDelete={() => alert("Penghapusan hanya tersedia di halaman Riwayat")}
                 />
               ))}
         </div>
