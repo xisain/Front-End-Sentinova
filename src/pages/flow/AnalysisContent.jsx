@@ -7,6 +7,7 @@ import { useAuth } from '@clerk/clerk-react'
 import { collection, addDoc } from "firebase/firestore"
 import { signInWithCustomToken } from "firebase/auth"
 import { db, auth } from "../../firebaseConfig/config"
+import { useNotification } from "./NotificationContext"
 
 const AnalysisContent = () => {
   const [analysisType, setAnalysisType] = useState("file")
@@ -19,6 +20,7 @@ const AnalysisContent = () => {
   
   // Clerk authentication
   const { getToken, userId } = useAuth()
+  const { addNotification } = useNotification()
 
   // Function to authenticate with Firebase using Clerk token
   const signIntoFirebaseWithClerk = async () => {
@@ -57,7 +59,7 @@ const AnalysisContent = () => {
     if (file && (file.type === "text/csv" || file.type.includes("sheet"))) {
       setSelectedFile(file)
     } else {
-      alert("Please select a CSV or Excel file")
+      addNotification("Please select a CSV or Excel file", "error")
     }
   }
 
@@ -85,22 +87,22 @@ const AnalysisContent = () => {
     e.preventDefault()
 
     if (!userId) {
-      alert("You need to sign in with Clerk to access this page.")
+      addNotification("You need to sign in with Clerk to access this page.", "error")
       return
     }
 
     if (!productName.trim()) {
-      alert("Nama produk harus diisi")
+      addNotification("Nama produk harus diisi", "error")
       return
     }
 
     if (analysisType === "file" && !selectedFile) {
-      alert("Pilih file untuk dianalisis")
+      addNotification("Pilih file untuk dianalisis", "error")
       return
     }
 
     if (analysisType === "text" && !textInput.trim()) {
-      alert("Masukkan teks untuk dianalisis")
+      addNotification("Masukkan teks untuk dianalisis", "error")
       return
     }
 
@@ -203,7 +205,7 @@ const AnalysisContent = () => {
       }
     } catch (error) {
       console.error("Error during analysis:", error)
-      alert("Terjadi kesalahan saat menganalisis data. Silakan coba lagi.")
+      addNotification("Terjadi kesalahan saat menganalisis data. Silakan coba lagi.", "error")
     } finally {
       setIsLoading(false)
     }

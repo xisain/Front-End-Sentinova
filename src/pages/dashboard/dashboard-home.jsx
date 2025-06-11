@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
   FiBarChart2,
@@ -7,141 +7,110 @@ import {
   FiList,
   FiPlus,
   FiArrowRight,
-  FiRefreshCw,
-  FiUpload,
-  FiFileText,
-  FiSearch,
-  FiDownload,
+  FiRefreshCw
 } from "react-icons/fi"
 
-// Mock data for dashboard
-const mockRecentAnalyses = [
-  { id: 1, title: "Ulasan Produk A", date: "2025-05-25", sentiment: "positive", score: 0.87, count: 124 },
-  { id: 2, title: "Feedback Layanan", date: "2025-05-24", sentiment: "neutral", score: 0.52, count: 78 },
-  { id: 3, title: "Review Aplikasi", date: "2025-05-22", sentiment: "negative", score: 0.23, count: 45 },
-  { id: 4, title: "Komentar Media Sosial", date: "2025-05-20", sentiment: "positive", score: 0.91, count: 230 },
-]
+import { collection, getDocs, query } from "firebase/firestore"
+import { db, auth } from "../../firebaseConfig/config"
+import { onAuthStateChanged } from "firebase/auth"
+import HistoryCard from "../history/HistoryContent" // sesuaikan path jika perlu
+import { useNotification } from "../flow/NotificationContext"
 
-// Dashboard stat card component
-const StatCard = ({ title, value, icon, color, change, isLoading }) => {
-  return (
-    <motion.div
-      whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)" }}
-      className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 relative overflow-hidden"
-    >
-      {isLoading ? (
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-white/20 rounded w-1/2"></div>
-          <div className="h-8 bg-white/20 rounded w-3/4"></div>
-          <div className="h-4 bg-white/20 rounded w-1/4"></div>
+const StatCard = ({ title, value, icon, color, change, isLoading }) => (
+  <motion.div
+    whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)" }}
+    className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 relative overflow-hidden"
+  >
+    {isLoading ? (
+      <div className="animate-pulse space-y-3">
+        <div className="h-4 bg-white/20 rounded w-1/2"></div>
+        <div className="h-8 bg-white/20 rounded w-3/4"></div>
+        <div className="h-4 bg-white/20 rounded w-1/4"></div>
+      </div>
+    ) : (
+      <>
+        <div className={`absolute top-0 right-0 w-24 h-24 ${color} rounded-full blur-3xl opacity-20`}></div>
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="text-gray-400 font-medium">{title}</h3>
+          <div className={`p-2 rounded-lg ${color} bg-opacity-20`}>{icon}</div>
         </div>
-      ) : (
-        <>
-          <div className={`absolute top-0 right-0 w-24 h-24 ${color} rounded-full blur-3xl opacity-20`}></div>
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-gray-400 font-medium">{title}</h3>
-            <div className={`p-2 rounded-lg ${color} bg-opacity-20`}>{icon}</div>
-          </div>
-          <p className="text-3xl font-bold text-white mb-2">{value}</p>
-          {change && (
-            <div className="flex items-center gap-1">
-              <span
-                className={`text-sm font-medium ${
-                  change.startsWith("+") ? "text-green-400" : change.startsWith("-") ? "text-red-400" : "text-gray-400"
-                }`}
-              >
-                {change}
-              </span>
-              <span className="text-gray-400 text-sm">dari bulan lalu</span>
-            </div>
-          )}
-        </>
-      )}
-    </motion.div>
-  )
-}
-
-// Recent analysis card component
-const AnalysisCard = ({ analysis, isLoading }) => {
-  const getSentimentColor = (sentiment) => {
-    switch (sentiment) {
-      case "positive":
-        return "bg-green-500"
-      case "negative":
-        return "bg-red-500"
-      default:
-        return "bg-blue-500"
-    }
-  }
-
-  const getSentimentText = (sentiment) => {
-    switch (sentiment) {
-      case "positive":
-        return "Positif"
-      case "negative":
-        return "Negatif"
-      default:
-        return "Netral"
-    }
-  }
-
-  return (
-    <motion.div
-      whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)" }}
-      className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-5 transition-all duration-300"
-    >
-      {isLoading ? (
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-white/20 rounded w-3/4"></div>
-          <div className="h-4 bg-white/20 rounded w-1/2"></div>
-          <div className="flex justify-between mt-4">
-            <div className="h-6 bg-white/20 rounded w-1/4"></div>
-            <div className="h-6 bg-white/20 rounded w-1/4"></div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="flex justify-between items-start mb-3">
-            <h3 className="font-medium text-white">{analysis.title}</h3>
-            <span className="text-gray-400 text-sm">{analysis.date}</span>
-          </div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className={`w-3 h-3 rounded-full ${getSentimentColor(analysis.sentiment)}`}></span>
-            <span className="text-gray-300 text-sm">
-              {getSentimentText(analysis.sentiment)} ({Math.round(analysis.score * 100)}%)
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400 text-sm">{analysis.count} ulasan</span>
-            <Link
-              to={`/dashboard/analysis/${analysis.id}`}
-              className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition-colors"
+        <p className="text-3xl font-bold text-white mb-2">{value}</p>
+        {change && (
+          <div className="flex items-center gap-1">
+            <span
+              className={`text-sm font-medium ${
+                change.startsWith("+") ? "text-green-400" : change.startsWith("-") ? "text-red-400" : "text-gray-400"
+              }`}
             >
-              Lihat Detail
-              <FiArrowRight className="text-xs" />
-            </Link>
+              {change}
+            </span>
+            <span className="text-gray-400 text-sm">dari bulan lalu</span>
           </div>
-        </>
-      )}
-    </motion.div>
-  )
-}
+        )}
+      </>
+    )}
+  </motion.div>
+)
 
 const DashboardHome = () => {
   const [isLoading, setIsLoading] = useState(true)
+  const [recentAnalyses, setRecentAnalyses] = useState([])
+  const navigate = useNavigate()
+  const { addNotification } = useNotification()
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
+    const fetchAnalyses = async () => {
+      setIsLoading(true)
 
-    return () => clearTimeout(timer)
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) return
+
+        try {
+          const userId = user.uid
+          const q = query(collection(db, "historyAnalysis", userId, "analysis_result"))
+          const querySnapshot = await getDocs(q)
+
+          const data = querySnapshot.docs.map((doc) => {
+            const item = doc.data()
+            const timestamp = item.timestamp?.toDate?.() || new Date()
+
+            return {
+              id: doc.id,
+              productName: item.productName || "Produk",
+              date: timestamp.toLocaleDateString("id-ID"),
+              time: timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+              count: item.results?.totalReviews || 0,
+              timestamp: timestamp,
+              results: {
+                reviewDetails: item.results?.reviewDetails || [],
+                totalReviews: item.results?.totalReviews || 0
+              }
+            }
+          })
+
+          data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          setRecentAnalyses(data.slice(0, 4))
+        } catch (error) {
+          console.error("Gagal mengambil data Firestore:", error)
+        } finally {
+          setIsLoading(false)
+        }
+      })
+    }
+
+    fetchAnalyses()
   }, [])
+
+  const totalPositif = recentAnalyses.reduce((count, a) => {
+    return count + a.results.reviewDetails.filter(r => r.sentiment?.toLowerCase() === "positive").length
+  }, 0)
+
+  const totalNegatif = recentAnalyses.reduce((count, a) => {
+    return count + a.results.reviewDetails.filter(r => r.sentiment?.toLowerCase() === "negative").length
+  }, 0)
 
   return (
     <div className="p-6 space-y-8">
-      {/* Welcome section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Dashboard</h1>
@@ -169,43 +138,41 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Analisis"
-          value="24"
+          value={recentAnalyses.length}
           icon={<FiBarChart2 className="text-blue-400" />}
           color="bg-blue-500"
-          change="+4"
+          change=""
           isLoading={isLoading}
         />
         <StatCard
           title="Sentimen Positif"
-          value="68%"
+          value={totalPositif}
           icon={<FiPieChart className="text-green-400" />}
           color="bg-green-500"
-          change="+12%"
+          change=""
           isLoading={isLoading}
         />
         <StatCard
           title="Sentimen Negatif"
-          value="18%"
+          value={totalNegatif}
           icon={<FiPieChart className="text-red-400" />}
           color="bg-red-500"
-          change="-5%"
+          change=""
           isLoading={isLoading}
         />
         <StatCard
           title="Ulasan Dianalisis"
-          value="1,248"
+          value={recentAnalyses.reduce((sum, a) => sum + a.count, 0)}
           icon={<FiList className="text-purple-400" />}
           color="bg-purple-500"
-          change="+248"
+          change=""
           isLoading={isLoading}
         />
       </div>
 
-      {/* Recent analyses */}
       <div>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-white">Analisis Terbaru</h2>
@@ -220,59 +187,28 @@ const DashboardHome = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {isLoading
-            ? Array(4)
-                .fill(0)
-                .map((_, i) => <AnalysisCard key={i} isLoading={true} />)
-            : mockRecentAnalyses.map((analysis) => <AnalysisCard key={analysis.id} analysis={analysis} />)}
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-        <h2 className="text-xl font-bold text-white mb-4">Aksi Cepat</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <Link to="/dashboard/analysis">
-            <motion.div
-              whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)" }}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex flex-col items-center gap-3 transition-all duration-300 cursor-pointer"
-            >
-              <div className="p-3 rounded-full bg-blue-500/20">
-                <FiUpload className="text-blue-400 text-xl" />
-              </div>
-              <span className="text-white font-medium">Upload CSV</span>
-            </motion.div>
-          </Link>
-          <Link to="/dashboard/reports">
-            <motion.div
-              whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)" }}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex flex-col items-center gap-3 transition-all duration-300 cursor-pointer"
-            >
-              <div className="p-3 rounded-full bg-green-500/20">
-                <FiFileText className="text-green-400 text-xl" />
-              </div>
-              <span className="text-white font-medium">Buat Laporan</span>
-            </motion.div>
-          </Link>
-          <Link to="/dashboard/history">
-            <motion.div
-              whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)" }}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex flex-col items-center gap-3 transition-all duration-300 cursor-pointer"
-            >
-              <div className="p-3 rounded-full bg-purple-500/20">
-                <FiSearch className="text-purple-400 text-xl" />
-              </div>
-              <span className="text-white font-medium">Cari Analisis</span>
-            </motion.div>
-          </Link>
-          <motion.div
-            whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)" }}
-            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex flex-col items-center gap-3 transition-all duration-300 cursor-pointer"
-          >
-            <div className="p-3 rounded-full bg-yellow-500/20">
-              <FiDownload className="text-yellow-400 text-xl" />
-            </div>
-            <span className="text-white font-medium">Download Data</span>
-          </motion.div>
+            ? Array(4).fill(0).map((_, i) => (
+                <div key={i} className="bg-white/10 p-6 rounded-xl animate-pulse h-48" />
+              ))
+            : recentAnalyses.map((item) => (
+                <HistoryCard
+                  key={item.id}
+                  item={item}
+                  onView={(data) => {
+                    const analysisData = {
+                      analysisId: item.id,
+                      productName: item.productName,
+                      analysisType: "history",
+                      timestamp: item.timestamp,
+                      results: item.results,
+                    }
+                    navigate("/flow/analysis/results", {
+                      state: analysisData,
+                    })
+                  }}
+                  onDelete={() => addNotification("Penghapusan hanya tersedia di halaman Riwayat", "info")}
+                />
+              ))}
         </div>
       </div>
     </div>

@@ -1,8 +1,7 @@
-import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FiArrowRight } from "react-icons/fi"
 
-const AnalysisCard = ({ analysis, isLoading, cardClassName = "" }) => {
+const AnalysisCard = ({ analysis, isLoading, onView, cardClassName = "" }) => {
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
       case "positive":
@@ -43,7 +42,7 @@ const AnalysisCard = ({ analysis, isLoading, cardClassName = "" }) => {
       ) : (
         <>
           <div className="flex justify-between items-start mb-3">
-            <h3 className="font-medium text-white">{analysis.title}</h3>
+            <h3 className="font-medium text-white line-clamp-1">{analysis.title}</h3>
             <span className="text-gray-400 text-sm">{analysis.date}</span>
           </div>
           <div className="flex items-center gap-2 mb-3">
@@ -54,13 +53,15 @@ const AnalysisCard = ({ analysis, isLoading, cardClassName = "" }) => {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-400 text-sm">{analysis.count} ulasan</span>
-            <Link
-              to={`/flow/analysis/results/${analysis.id}`}
-              className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition-colors"
-            >
-              Lihat Detail
-              <FiArrowRight className="text-xs" />
-            </Link>
+            {onView && (
+              <button
+                onClick={() => onView(analysis)}
+                className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition-colors"
+              >
+                Lihat Detail
+                <FiArrowRight className="text-xs" />
+              </button>
+            )}
           </div>
         </>
       )}

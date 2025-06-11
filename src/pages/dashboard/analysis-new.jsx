@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FiUpload, FiFileText, FiArrowRight, FiX, FiCheck } from "react-icons/fi"
+import { useNotification } from "../NotificationContext"
 
 const AnalysisNew = () => {
   const [analysisType, setAnalysisType] = useState("file") // 'file' or 'text'
@@ -11,12 +12,13 @@ const AnalysisNew = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const navigate = useNavigate()
+  const { addNotification } = useNotification()
 
   const handleFileSelect = (file) => {
     if (file && (file.type === "text/csv" || file.type.includes("sheet"))) {
       setSelectedFile(file)
     } else {
-      alert("Please select a CSV or Excel file")
+      addNotification("Please select a CSV or Excel file", "error")
     }
   }
 
@@ -44,17 +46,17 @@ const AnalysisNew = () => {
     e.preventDefault()
 
     if (!productName.trim()) {
-      alert("Nama produk harus diisi")
+      addNotification("Nama produk harus diisi", "error")
       return
     }
 
     if (analysisType === "file" && !selectedFile) {
-      alert("Pilih file untuk dianalisis")
+      addNotification("Pilih file untuk dianalisis", "error")
       return
     }
 
     if (analysisType === "text" && !textInput.trim()) {
-      alert("Masukkan teks untuk dianalisis")
+      addNotification("Masukkan teks untuk dianalisis", "error")
       return
     }
 
@@ -92,7 +94,7 @@ const AnalysisNew = () => {
       })
     } catch (error) {
       console.error("Analysis failed:", error)
-      alert("Analisis gagal. Silakan coba lagi.") //GANTI POP UP
+      addNotification("Analisis gagal. Silakan coba lagi.", "error")
     } finally {
       setIsLoading(false)
     }

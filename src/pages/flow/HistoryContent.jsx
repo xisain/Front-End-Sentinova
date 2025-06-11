@@ -18,6 +18,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { db, auth } from "../../firebaseConfig/config";
 import { collection, query, where, orderBy, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { signInWithCustomToken } from "firebase/auth";
+import { useNotification } from "./NotificationContext";
 
 const HistoryCard = ({ item, onView, onDelete }) => {
   const displayDate = item.date;
@@ -85,6 +86,7 @@ function HistoryContent() {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { userId, getToken, isLoaded, isSignedIn } = useAuth();
+  const { addNotification } = useNotification();
 
   // Fungsi untuk mengautentikasi Firebase menggunakan token Clerk
   const signIntoFirebaseWithClerk = async () => {
@@ -134,7 +136,7 @@ function HistoryContent() {
       setHistory(processedHistory);
     } catch (error) {
       console.error("Error fetching history from Firestore:", error);
-      alert("Gagal memuat riwayat analisis dari Firestore. Silakan coba lagi. Pastikan aturan keamanan Firestore sudah benar."); // TODO: Ganti dengan modal UI kustom
+      addNotification("Gagal memuat riwayat analisis dari Firestore. Silakan coba lagi. Pastikan aturan keamanan Firestore sudah benar.", "error");
       setHistory([]);
     } finally {
       setIsLoading(false);
@@ -175,7 +177,7 @@ function HistoryContent() {
         fetchHistoryFromFirestore();
       } catch (error) {
         console.error("Error removing document: ", error);
-        alert("Gagal menghapus riwayat analisis. Silakan coba lagi.");
+        addNotification("Gagal menghapus riwayat analisis. Silakan coba lagi.", "error");
       }
     }
   };
