@@ -37,7 +37,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile, setIsMobileOpen, isMob
         <div className={`flex ${isCollapsed ? "justify-center items-center" : "items-center justify-between"}`}>
           {!isCollapsed && (
             <Link to="/" className="flex items-center gap-3">
-              <img src="Sentinova.png" className="h-8" alt="Sentinova Logo" />
+              <img src="/Sentinova.png" className="h-8" alt="Sentinova Logo" />
             </Link>
           )}
           {!isMobile && (
