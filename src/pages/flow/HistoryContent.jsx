@@ -39,7 +39,7 @@ const HistoryCard = ({ item, onView, onDelete }) => {
         <div className="space-y-3 mb-6">
           <div className="flex items-center gap-3 text-gray-300 text-sm">
             <FiPackage className="text-blue-400 text-lg" />
-            <span>Jumlah Ulasan: <span className="font-semibold text-white">{item.count || 0}</span></span>
+            <span>Jumlah Ulasan: <span className="font-semibold text-white">{item.results.totalReviews}</span></span>
           </div>
           <div className="flex items-center gap-3 text-gray-300 text-sm">
             <FiCalendar className="text-green-400 text-lg" />
@@ -152,7 +152,6 @@ function HistoryContent() {
   });
 
   const handleViewDetail = (item) => {
-    // Format data lebih sederhana
     const analysisData = {
       analysisId: item.id,
       productName: item.productName,
