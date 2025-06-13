@@ -1,4 +1,4 @@
-const BASE_URL = './api';
+const BASE_URL = "https://api.sentinova.my.id";
 
 export const api = {
   // Fungsi helper untuk melakukan HTTP requests
@@ -6,13 +6,16 @@ export const api = {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
         ...options.headers,
+        ...(options.body instanceof FormData
+          ? {} // FormData => biarkan browser set Content-Type (multi-part)
+          : { 'Content-Type': 'application/json' }),
       },
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
 
     return response.json();
@@ -43,6 +46,13 @@ export const api = {
   async delete(endpoint) {
     return this.fetchWithError(endpoint, {
       method: 'DELETE',
+    });
+  },
+  async postFormData(endpoint, formData) {
+    return this.fetchWithError(endpoint, {
+      method: 'POST',
+      body: formData,
+      
     });
   },
 }; 

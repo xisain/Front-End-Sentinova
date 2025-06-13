@@ -114,24 +114,12 @@ const AnalysisContent = () => {
       const timestamp = new Date().toISOString()
       
       if (analysisType === "text") {
-        const reviews = textInput.split(/\n+/).filter(text => text.trim())
-        
-        const results = await Promise.all(
-          reviews.map(async (text) => {
-            const [sentimentResponse, summaryResponse] = await Promise.all([
-              api.post('/sentiment', { text }),
-              api.post('/summarize', { text })
-            ])
-            
-            return {
-              text,
-              sentiment: sentimentResponse.sentiment[0],
-              summary: summaryResponse.summary,
-              keywords: summaryResponse.keywords
-            }
-          })
-        )
-
+        const payload = {
+          texts: textInput.split(/\n+/).filter(text => text.trim()),
+        }
+        console.log(JSON.stringify(payload))
+        const results = await api.post('/analyze_texts', payload)
+        // console.log("Analysis result:", result)
         const analysisData = {
           analysisId,
           productName,
@@ -140,16 +128,16 @@ const AnalysisContent = () => {
           results: {
             productName,
             analysisDate: new Date().toLocaleString("id-ID"),
-            totalReviews: results.length,
+            totalReviews: results.total_reviews,
             processingTime: "Selesai",
-            summary: results[0]?.summary,
-            reviewDetails: results.map((review, index) => ({
-              id: index + 1,
+            summary: results.overall_summary,
+            sentimentDistribution: results.sentiment_distribution,
+            topKeywords: results.top_keywords,
+            reviewDetails: results.review_details.map(review => ({
               text: review.text,
-              sentiment: review.sentiment.label.charAt(0).toUpperCase() + review.sentiment.label.slice(1),
-              confidence: review.sentiment.score,
-              color: review.sentiment.label === "positive" ? "#10B981" : 
-                     review.sentiment.label === "negative" ? "#EF4444" : "#6B7280"
+              transformer: review.transformer,
+              ml: review.ml,
+              keywords: review.keywords
             }))
           }
         }
@@ -163,13 +151,7 @@ const AnalysisContent = () => {
       } else {
         const formData = new FormData()
         formData.append("file", selectedFile)
-        
-        const response = await fetch('/api/analyze_csv', {
-          method: 'POST',
-          body: formData,
-        })
-        
-        const data = await response.json()
+        const data = await api.postFormData('/analyze_csv', formData);
         
         if (data.error) {
           throw new Error(data.error)
