@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { Canvas } from "@react-three/fiber"
 import { Stars } from "@react-three/drei"
 import { motion, useMotionTemplate, useMotionValue, animate } from "framer-motion"
-import { FiMenu, FiBell, FiSettings, FiLogOut } from "react-icons/fi"
+import { FiMenu, FiSettings, FiLogOut } from "react-icons/fi"
 import { useUser, useClerk } from "@clerk/clerk-react"
 import Sidebar from "./sidebar"
 
@@ -241,13 +241,6 @@ const DashboardLayout = ({ children }) => {
               </div>
 
               <div className="flex items-center gap-4">
-                {/* Notification Bell */}
-                <button className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors relative">
-                  <FiBell />
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-                </button>
-
-                {/* User Dropdown - Using custom component similar to home.jsx */}
                 <DashboardUserDropdown />
               </div>
             </div>

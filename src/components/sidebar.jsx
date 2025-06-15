@@ -11,7 +11,7 @@ import {
   FiChevronRight,
   FiHome,
 } from "react-icons/fi";
-import { useClerk } from "@clerk/clerk-react"; // Clerk auth
+import { useClerk } from "@clerk/clerk-react";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile, setIsMobileOpen, isMobileOpen }) => {
   const location = useLocation();

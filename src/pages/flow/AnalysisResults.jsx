@@ -39,19 +39,18 @@ const AnalysisResults = () => {
       ? modelData.sentimentDistribution.transformer.IndoBERT
       : modelData.sentimentDistribution.ml.NaiveBayes,
     topKeywords: modelData.topKeywords,
+    // Add topic distribution
+    topicDistribution: modelData.topicDistribution || [],
     reviewDetails: modelData.reviewDetails.map((review) => {
-      // Ambil prediksi sesuai model
       const preds = modelType === 'pretrained'
         ? review.transformer?.IndoBERT?.predictions
         : review.ml?.NaiveBayes?.predictions || [];
       
-      // Cari prediksi dengan score tertinggi
       const topPred = preds.reduce(
         (max, cur) => (cur.score > max.score ? cur : max),
         { label: "", score: 0 }
       );
 
-      // Mapping label ke frontend
       const labelMap = {
         positive: "Positive",
         negative: "Negative",
@@ -62,6 +61,7 @@ const AnalysisResults = () => {
         ...review,
         sentiment: labelMap[topPred.label] || "Neutral",
         confidence: topPred.score,
+        topics: review.topics || [], // Include topics in review details
         color:
           labelMap[topPred.label] === "Positive"
             ? "#10B981"
@@ -327,8 +327,8 @@ const AnalysisResults = () => {
               </h3>
               <p className="text-gray-400 text-sm">
                 {activeModel === "pretrained"
-                  ? "Model yang telah dilatih dengan dataset besar"
-                  : "Algoritma klasifikasi probabilistik (simulasi)"}
+                  ? "Model yang telah dilatih dengan dataset dan Menghasilkan 3 kelas sentiment"
+                  : "Algoritma klasifikasi probabilistik yang mengklasifikasikan ulasan menjadi 2 kelas sentiment, yaitu Positif dan Negatif."}
               </p>
             </div>
           </div>
@@ -472,6 +472,62 @@ const AnalysisResults = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Topic Distribution Chart - Add this new section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mt-6"
+      >
+        <h2 className="text-xl font-bold text-white mb-4">Distribusi Topik</h2>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={currentResults.topicDistribution}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis tick={{ fill: "#9CA3AF", fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1F2937",
+                  border: "1px solid #374151",
+                  borderRadius: "8px",
+                  color: "#F3F4F6",
+                }}
+                formatter={(value) => [`${value}%`, "Persentase"]}
+              />
+              <Bar
+                dataKey="value"
+                fill={activeModel === "pretrained" ? "#3B82F6" : "#8B5CF6"}
+                radius={[4, 4, 0, 0]}
+              >
+                {currentResults.topicDistribution.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={`hsl(${index * 45}, 70%, 50%)`} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex flex-wrap justify-center gap-4 mt-4">
+          {currentResults.topicDistribution.map((topic, index) => (
+            <div key={topic.name} className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: `hsl(${index * 45}, 70%, 50%)` }}
+              ></div>
+              <span className="text-gray-300 text-sm">
+                {topic.name}: {topic.count} ulasan
+              </span>
+            </div>
+          ))}
+        </div>
+      </motion.div>
 
       {/* Review Details dengan Pagination */}
       <motion.div

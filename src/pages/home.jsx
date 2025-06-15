@@ -3,48 +3,8 @@ import { useNavigate, Link } from "react-router-dom"
 import { Canvas } from "@react-three/fiber"
 import { Stars } from "@react-three/drei"
 import { FiArrowRight, FiTarget, FiSmile, FiLock, FiLink, FiSettings, FiLogOut } from "react-icons/fi"
-import TiltCard from "./tiltcard"
-import { motion, useMotionTemplate, useMotionValue, animate } from "framer-motion"
+import { motion } from "framer-motion"
 import { useUser, useClerk } from "@clerk/clerk-react"
-
-// Expanded color palette for the entire site
-const COLORS_TOP = ["#13FFAA", "#1E67C6", "#CE84CF", "#DD335C"]
-const COLORS_BOTTOM = ["#0D4B3C", "#0A2342", "#4A1942", "#3D0E21"]
-
-// Custom animated background component that can be reused
-const AnimatedBackground = ({ children, className, speed = 10, colorIndex = 0 }) => {
-  const color = useMotionValue(COLORS_TOP[colorIndex % COLORS_TOP.length])
-  const bottomColor = useMotionValue(COLORS_BOTTOM[colorIndex % COLORS_BOTTOM.length])
-
-  useEffect(() => {
-    animate(color, [...COLORS_TOP], {
-      ease: "easeInOut",
-      duration: speed,
-      repeat: Number.POSITIVE_INFINITY,
-      repeatType: "mirror",
-    })
-
-    animate(bottomColor, [...COLORS_BOTTOM], {
-      ease: "easeInOut",
-      duration: speed,
-      repeat: Number.POSITIVE_INFINITY,
-      repeatType: "mirror",
-    })
-  }, [])
-
-  const backgroundImage = useMotionTemplate`linear-gradient(to bottom, #020617 10%, ${color} 50%, ${bottomColor} 100%)`
-
-  return (
-    <motion.div style={{ backgroundImage }} className={`relative overflow-hidden ${className}`}>
-      <div className="absolute inset-0">
-        <Canvas>
-          <Stars radius={100} depth={50} count={5000} factor={4} fade speed={1} />
-        </Canvas>
-      </div>
-      <div className="relative z-10">{children}</div>
-    </motion.div>
-  )
-}
 
 // User Dropdown Component - Improved version
 const UserDropdown = () => {
@@ -93,74 +53,73 @@ const UserDropdown = () => {
         .toUpperCase()
         .substring(0, 2)
     }
-
-    if (user?.username) {
-      return user.username.substring(0, 2).toUpperCase()
-    }
-
-    return "U"
+    return user?.username?.substring(0, 2).toUpperCase() || "U"
   }
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-2 rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300"
+        className="flex items-center gap-3 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition-colors border border-white/20"
       >
         {user?.imageUrl ? (
-          <div className="w-8 h-8 rounded-full overflow-hidden">
-            <img
-              src={user.imageUrl || "/placeholder.svg"}
-              alt={user.fullName || user.username || "User"}
-              className="w-full h-full object-cover"
-            />
-          </div>
+          <img
+            src={user.imageUrl}
+            alt={user.fullName || "User"}
+            className="w-9 h-9 rounded-full object-cover"
+          />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
             <span className="text-white text-sm font-medium">{getInitials()}</span>
           </div>
         )}
-        <span className="text-white text-sm font-medium hidden md:block">
-          {user?.firstName || user?.username?.split("@")[0] || "User"}
-        </span>
-        <svg
-          className={`w-4 h-4 text-white transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <div className="hidden sm:flex items-center gap-3">
+          <div className="flex flex-col items-start">
+            <span className="text-white text-sm font-medium">
+              {user?.firstName || user?.username?.split("@")[0] || "User"}
+            </span>
+            <span className="text-gray-400 text-xs">
+              {user?.primaryEmailAddress?.emailAddress?.split("@")[0]}
+            </span>
+          </div>
+          <svg
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </button>
 
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="absolute right-0 mt-2 w-64 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-xl z-50 overflow-hidden"
-        >
-          <div className="p-4 border-b border-white/10">
-            <p className="text-white font-medium truncate">{user?.fullName || user?.username}</p>
-            <p className="text-gray-400 text-sm truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+        <div className="absolute right-0 mt-2 w-56 bg-gray-900/95 backdrop-blur-sm border border-white/10 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-3 border-b border-white/10">
+            <p className="text-sm font-medium text-white truncate">
+              {user?.fullName || user?.username}
+            </p>
+            <p className="text-xs text-gray-400 truncate">
+              {user?.primaryEmailAddress?.emailAddress}
+            </p>
           </div>
           <div className="p-2">
             <button
               onClick={handleDashboard}
-              className="w-full flex items-center gap-3 px-3 py-2 text-left text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
             >
               <FiSettings className="w-4 h-4" />
               Dashboard
             </button>
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-3 py-2 text-left text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-300 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
             >
               <FiLogOut className="w-4 h-4" />
-              Logout
+              Sign Out
             </button>
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   )
@@ -192,9 +151,9 @@ const EnhancedHero = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-24">
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
         className="mb-4"
       >
         <div className="inline-block px-6 py-2 border border-white/20 rounded-full bg-white/5 backdrop-blur-sm mb-8">
@@ -247,29 +206,29 @@ const EnhancedHero = () => {
         </motion.div>
       </motion.div>
 
-      {/* Floating elements */}
+      {/* Optimize floating elements */}
       <motion.div
-        className="absolute top-1/4 left-1/4 w-24 h-24 rounded-full bg-blue-500/10 blur-3xl"
+        className="absolute top-1/4 left-1/4 w-24 h-24 rounded-full bg-blue-500/5 blur-2xl"
         animate={{
-          y: [0, 15, 0],
-          opacity: [0.4, 0.6, 0.4],
+          y: [0, 10, 0],
+          opacity: [0.3, 0.4, 0.3],
         }}
         transition={{
-          duration: 5,
+          duration: 6,
           repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
+          ease: "linear",
         }}
       />
       <motion.div
-        className="absolute bottom-1/4 right-1/4 w-32 h-32 rounded-full bg-purple-500/10 blur-3xl"
+        className="absolute bottom-1/4 right-1/4 w-32 h-32 rounded-full bg-purple-500/5 blur-2xl"
         animate={{
-          y: [0, -20, 0],
-          opacity: [0.3, 0.5, 0.3],
+          y: [0, -10, 0],
+          opacity: [0.2, 0.3, 0.2],
         }}
         transition={{
-          duration: 7,
+          duration: 8,
           repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
+          ease: "linear",
           delay: 1,
         }}
       />
@@ -629,17 +588,103 @@ const EnhancedFAQSection = () => {
   )
 }
 
+// New Feature Section Component
+const FeatureSection = () => {
+  const features = [
+    {
+      icon: <FiTarget className="w-6 h-6" />,
+      title: "Akurasi Tinggi",
+      description: "Didukung AI mutakhir untuk analisis sentimen dan ringkasan ulasan yang presisi.",
+      color: "text-emerald-400"
+    },
+    {
+      icon: <FiSmile className="w-6 h-6" />,
+      title: "Mudah Digunakan",
+      description: "Antarmuka sederhana, hasil instan tanpa perlu keahlian teknis.",
+      color: "text-blue-400"
+    },
+    {
+      icon: <FiLock className="w-6 h-6" />,
+      title: "Privasi Terjamin",
+      description: "Data Anda aman dan tidak dibagikan ke pihak ketiga.",
+      color: "text-purple-400"
+    },
+    {
+      icon: <FiLink className="w-6 h-6" />,
+      title: "Integrasi Mudah",
+      description: "Anda dapat terhubung dengan sistem hanya dalam beberapa langkah.",
+      color: "text-pink-400"
+    }
+  ]
+
+  return (
+    <div className="py-24 px-4">
+      <div className="max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-4xl font-bold text-white mb-4">
+            Fitur Utama
+          </h2>
+          <p className="text-gray-400 text-lg">
+            Teknologi AI terdepan untuk analisis sentimen dan summarization yang akurat
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              viewport={{ once: true }}
+              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300"
+            >
+              <div className={`${feature.color} mb-4`}>
+                {feature.icon}
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                {feature.title}
+              </h3>
+              <p className="text-gray-400">
+                {feature.description}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Simple background component
+const SimpleBackground = ({ children }) => {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-blue-950 to-slate-950 relative overflow-hidden">
+      <div className="absolute inset-0">
+        <Canvas>
+          <Stars radius={100} depth={50} count={2000} factor={2} fade speed={0.5} />
+        </Canvas>
+      </div>
+      <div className="relative z-10">{children}</div>
+    </div>
+  )
+}
+
 export default function Home() {
   const { isSignedIn, isLoaded, user } = useUser()
   const navigate = useNavigate()
 
-  // Tambahkan state untuk memastikan UI dirender ulang saat status auth berubah
   const [authState, setAuthState] = useState({
     isSignedIn: false,
     isLoaded: false,
   })
 
-  // Update state saat status auth berubah
   useEffect(() => {
     if (isLoaded) {
       setAuthState({
@@ -650,69 +695,36 @@ export default function Home() {
   }, [isSignedIn, isLoaded])
 
   return (
-    <AnimatedBackground className="min-h-screen">
+    <SimpleBackground>
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 w-full z-20 bg-black/20 backdrop-blur-md shadow-none">
-        <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-3">
-          <Link to="/" className="flex items-center space-x-3">
-            <img src="/Sentinova.png" className="h-9" alt="Sentinova Logo" />
+      <nav className="fixed top-0 left-0 w-full z-20 bg-black/30 backdrop-blur-sm border-b border-white/10">
+        <div className="max-w-screen-xl flex items-center justify-between mx-auto px-6 py-4">
+          <Link to="/" className="flex items-center">
+            <img src="/Sentinova.png" className="h-10" alt="Sentinova Logo" />
           </Link>
-          <button
-            data-collapse-toggle="navbar-default"
-            type="button"
-            className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
-            aria-controls="navbar-default"
-            aria-expanded="false"
-          >
-            <span className="sr-only">Open main menu</span>
-            <svg
-              className="w-5 h-5"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 17 14"
-            >
-              <path
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M1 1h15M1 7h15M1 13h15"
-              />
-            </svg>
-          </button>
-          <div className="hidden w-full md:block md:w-auto" id="navbar-default">
-            <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 md:flex-row md:mt-0">
-              {isLoaded && (
-                <>
-                  {isSignedIn ? (
-                    <li>
-                      <UserDropdown />
-                    </li>
-                  ) : (
-                    <>
-                      <li>
-                        <Link
-                          to="/auth"
-                          className="text-white font-poppins text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center hover:bg-white/10 rounded-lg"
-                        >
-                          Sign In
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          to="/auth"
-                          className="text-white bg-blue-600/80 hover:bg-blue-700/90 backdrop-blur-sm focus:ring-4 focus:outline-none focus:ring-blue-300/50 font-poppins rounded-lg text-sm px-5 py-2.5 me-2 mb-2 transition inline-block text-center"
-                        >
-                          Sign Up
-                        </Link>
-                      </li>
-                    </>
-                  )}
-                </>
+          
+          {isLoaded && (
+            <div className="flex items-center justify-end ml-auto">
+              {isSignedIn ? (
+                <UserDropdown />
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Link
+                    to="/auth"
+                    className="text-white hover:text-gray-300 px-4 py-2 text-sm font-medium transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/auth"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
               )}
-            </ul>
-          </div>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -722,90 +734,14 @@ export default function Home() {
       {/* Product Analysis Section */}
       <ProductAnalysisSection />
 
+      {/* Feature Section */}
+      <FeatureSection />
+
       {/* Enhanced FAQ Section */}
       <EnhancedFAQSection />
 
-      {/* Card Grid Section */}
-      <div className="py-24">
-        <div className="max-w-screen-xl mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent mb-4">
-              Fitur Utama
-            </h2>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              Teknologi AI terdepan untuk analisis sentimen dan summarization yang akurat
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 place-items-center">
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.7 }}
-              viewport={{ once: true }}
-              className="w-full flex justify-center"
-            >
-              <TiltCard
-                icon={<FiTarget className="text-green-400 text-3xl" />}
-                title="Akurasi Tinggi"
-                description="Didukung AI mutakhir untuk analisis sentimen dan ringkasan ulasan yang presisi."
-                className="relative h-96 w-full max-w-xs rounded-xl bg-gradient-to-br from-indigo-300 to-violet-300"
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.7 }}
-              viewport={{ once: true }}
-              className="w-full flex justify-center"
-            >
-              <TiltCard
-                icon={<FiSmile className="text-yellow-300 text-3xl" />}
-                title="Mudah Digunakan"
-                description="Antarmuka sederhana, hasil instan tanpa perlu keahlian teknis."
-                className="relative h-96 w-full max-w-xs rounded-xl bg-gradient-to-br from-blue-300 to-cyan-300"
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.7 }}
-              viewport={{ once: true }}
-              className="w-full flex justify-center"
-            >
-              <TiltCard
-                icon={<FiLock className="text-blue-400 text-3xl" />}
-                title="Privasi Terjamin"
-                description="Data Anda aman dan tidak dibagikan ke pihak ketiga."
-                className="relative h-96 w-full max-w-xs rounded-xl bg-gradient-to-br from-pink-300 to-fuchsia-300"
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.7 }}
-              viewport={{ once: true }}
-              className="w-full flex justify-center"
-            >
-              <TiltCard
-                icon={<FiLink className="text-pink-400 text-3xl" />}
-                title="Integrasi Mudah"
-                description="Anda dapat terhubung dengan sistem hanya dalam beberapa langkah."
-                className="relative h-96 w-full max-w-xs rounded-xl bg-gradient-to-br from-emerald-300 to-lime-300"
-              />
-            </motion.div>
-          </div>
-        </div>
-      </div>
-
       {/* Footer */}
-      <footer className="border-t border-white/10 py-12 backdrop-blur-md">
+      <footer className="border-t border-white/10 py-12 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto text-center px-4">
           <div className="flex items-center justify-center space-x-2 mb-6">
             <img src="/Sentinova.png" className="h-8" alt="Sentinova Logo" />
@@ -839,6 +775,6 @@ export default function Home() {
           <p className="text-sm text-gray-500">&copy; 2025 Sentinova. All rights reserved.</p>
         </div>
       </footer>
-    </AnimatedBackground>
+    </SimpleBackground>
   )
 }

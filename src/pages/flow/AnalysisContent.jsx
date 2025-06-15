@@ -119,7 +119,7 @@ const AnalysisContent = () => {
         }
         console.log(JSON.stringify(payload))
         const results = await api.post('/analyze_texts', payload)
-        // console.log("Analysis result:", result)
+        
         const analysisData = {
           analysisId,
           productName,
@@ -132,20 +132,19 @@ const AnalysisContent = () => {
             processingTime: "Selesai",
             summary: results.overall_summary,
             sentimentDistribution: results.sentiment_distribution,
+            topicDistribution: results.topic_distribution, // Add topic distribution
             topKeywords: results.top_keywords,
             reviewDetails: results.review_details.map(review => ({
               text: review.text,
               transformer: review.transformer,
               ml: review.ml,
-              keywords: review.keywords
+              keywords: review.keywords,
+              topics: review.topics // Add topics for each review
             }))
           }
         }
 
-        // Store in Firestore
         await storeAnalysisInFirestore(analysisData)
-
-        // Navigate to results
         navigate("/flow/analysis/results", { state: analysisData })
 
       } else {
@@ -169,20 +168,19 @@ const AnalysisContent = () => {
             processingTime: "Selesai",
             summary: data.overall_summary,
             sentimentDistribution: data.sentiment_distribution,
+            topicDistribution: data.topic_distribution, // Add topic distribution
             topKeywords: data.top_keywords,
             reviewDetails: data.review_details.map(review => ({
               text: review.text,
               transformer: review.transformer,
               ml: review.ml,
-              keywords: review.keywords
+              keywords: review.keywords,
+              topics: review.topics // Add topics for each review
             }))
           }
         }
 
-        // Store in Firestore
         await storeAnalysisInFirestore(analysisData)
-
-        // Navigate to results
         navigate("/flow/analysis/results", { state: analysisData })
       }
     } catch (error) {
@@ -218,7 +216,6 @@ const AnalysisContent = () => {
               onChange={(e) => setProductName(e.target.value)}
               placeholder="Masukkan nama produk yang akan dianalisis"
               className="w-full px-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 duration-300 shadow-md hover:bg-black/40 focus:bg-black/40 transition-colors"
-              required
             />
           </div>
         </div>
@@ -336,7 +333,6 @@ const AnalysisContent = () => {
                 rows={12}
                 maxLength={5000}
                 className="w-full px-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 duration-300 shadow-md hover:bg-black/40 focus:bg-black/40 transition-colors resize-none"
-                required
               />
               <p className="text-gray-400 text-sm mt-2">
                 Tip: Pisahkan setiap ulasan dengan baris baru untuk hasil analisis yang lebih akurat

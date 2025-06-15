@@ -1,4 +1,4 @@
-const BASE_URL = "https://api.sentinova.my.id";
+const BASE_URL = 'https://api.sentinova.my.id'
 
 export const api = {
   // Fungsi helper untuk melakukan HTTP requests
