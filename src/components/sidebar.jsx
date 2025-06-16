@@ -26,7 +26,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobile, setIsMobileOpen, isMob
     { id: "dashboard", label: "Dashboard", icon: <FiBarChart2 />, path: "/flow" },
     { id: "analysis", label: "Analisis Baru", icon: <FiUpload />, path: "/flow/analysis" },
     { id: "history", label: "Riwayat Analisis", icon: <FiList />, path: "/flow/history" },
-    { id: "reports", label: "Laporan", icon: <FiFileText />, path: "/flow/reports" },
     { id: "settings", label: "Pengaturan", icon: <FiSettings />, path: "/flow/settings" },
   ];
 

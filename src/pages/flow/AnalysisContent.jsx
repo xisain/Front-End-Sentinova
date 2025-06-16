@@ -129,17 +129,21 @@ const AnalysisContent = () => {
             productName,
             analysisDate: new Date().toLocaleString("id-ID"),
             totalReviews: results.total_reviews,
-            processingTime: "Selesai",
+            processingTime: {
+              transformer: results.processing_times.transformer?.replace('-', ''),
+              naive_bayes: results.processing_times.naive_bayes?.replace('-', ''),
+              total: results.processing_times.total?.replace('-', '')
+            },
             summary: results.overall_summary,
             sentimentDistribution: results.sentiment_distribution,
-            topicDistribution: results.topic_distribution, // Add topic distribution
+            topicDistribution: results.topic_distribution,
             topKeywords: results.top_keywords,
             reviewDetails: results.review_details.map(review => ({
               text: review.text,
               transformer: review.transformer,
               ml: review.ml,
               keywords: review.keywords,
-              topics: review.topics // Add topics for each review
+              topics: review.topics
             }))
           }
         }
@@ -165,17 +169,21 @@ const AnalysisContent = () => {
             productName,
             analysisDate: new Date().toLocaleString("id-ID"),
             totalReviews: data.total_reviews,
-            processingTime: "Selesai",
+            processingTime: {
+              transformer: data.processing_times.transformer?.replace('-', ''),
+              naive_bayes: data.processing_times.naive_bayes?.replace('-', ''),
+              total: data.processing_times.total?.replace('-', '')
+            },
             summary: data.overall_summary,
             sentimentDistribution: data.sentiment_distribution,
-            topicDistribution: data.topic_distribution, // Add topic distribution
+            topicDistribution: data.topic_distribution,
             topKeywords: data.top_keywords,
             reviewDetails: data.review_details.map(review => ({
               text: review.text,
               transformer: review.transformer,
               ml: review.ml,
               keywords: review.keywords,
-              topics: review.topics // Add topics for each review
+              topics: review.topics
             }))
           }
         }

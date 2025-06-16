@@ -33,13 +33,14 @@ const AnalysisResults = () => {
     productName: modelData.productName,
     analysisDate: modelData.analysisDate,
     totalReviews: modelData.totalReviews,
-    processingTime: modelData.processingTime,
-    accuracy: modelData.accuracy || 92,
+    processingTime: modelType === 'pretrained' 
+      ? modelData.processingTime.transformer?.replace('-', '')
+      : modelData.processingTime.naive_bayes?.replace('-', ''),
+    accuracy: modelType === 'pretrained' ? 92 : 94,
     sentimentDistribution: modelType === 'pretrained' 
       ? modelData.sentimentDistribution.transformer.IndoBERT
       : modelData.sentimentDistribution.ml.NaiveBayes,
     topKeywords: modelData.topKeywords,
-    // Add topic distribution
     topicDistribution: modelData.topicDistribution || [],
     reviewDetails: modelData.reviewDetails.map((review) => {
       const preds = modelType === 'pretrained'
@@ -61,7 +62,7 @@ const AnalysisResults = () => {
         ...review,
         sentiment: labelMap[topPred.label] || "Neutral",
         confidence: topPred.score,
-        topics: review.topics || [], // Include topics in review details
+        topics: review.topics || [],
         color:
           labelMap[topPred.label] === "Positive"
             ? "#10B981"
@@ -94,8 +95,16 @@ const AnalysisResults = () => {
           { model: "Naive Bayes", accuracy: naiveBayesResults.accuracy },
         ],
         processingTimeComparison: [
-          { model: "Pre-trained", time: Number.parseFloat(pretrainedResults.processingTime) || 2.3 },
-          { model: "Naive Bayes", time: Number.parseFloat(naiveBayesResults.processingTime) || 1.6 },
+          { 
+            name: "Pre-trained Model",
+            time: Math.abs(Number(pretrainedResults.processingTime.replace('s', ''))) || 0,
+            color: "#3B82F6"
+          },
+          { 
+            name: "Naive Bayes",
+            time: Math.abs(Number(naiveBayesResults.processingTime.replace('s', ''))) || 0,
+            color: "#8B5CF6"
+          }
         ],
       },
     })
@@ -224,8 +233,21 @@ const AnalysisResults = () => {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={results.comparison.processingTimeComparison}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="model" tick={{ fill: "#9CA3AF", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#9CA3AF", fontSize: 12 }} />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                height={40}
+              />
+              <YAxis 
+                tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                label={{ 
+                  value: 'Waktu (detik)', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  fill: "#9CA3AF",
+                  fontSize: 12
+                }}
+              />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "#1F2937",
@@ -233,9 +255,18 @@ const AnalysisResults = () => {
                   borderRadius: "8px",
                   color: "#F3F4F6",
                 }}
-                formatter={(value) => [`${value}s`, "Waktu Proses"]}
+                formatter={(value) => [`${value.toFixed(2)}s`, "Waktu Proses"]}
               />
-              <Bar dataKey="time" fill="#10B981" radius={[4, 4, 0, 0]} />
+              <Bar 
+                dataKey="time" 
+                radius={[4, 4, 0, 0]}
+              >
+                {
+                  results.comparison.processingTimeComparison.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))
+                }
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -327,7 +358,7 @@ const AnalysisResults = () => {
               </h3>
               <p className="text-gray-400 text-sm">
                 {activeModel === "pretrained"
-                  ? "Model yang telah dilatih dengan dataset dan Menghasilkan 3 kelas sentiment"
+                  ? "Model yang telah dilatih dengan dataset dan Menghasilkan 3 kelas sentiment, yaitu Positif, Netral, dan Negatif."
                   : "Algoritma klasifikasi probabilistik yang mengklasifikasikan ulasan menjadi 2 kelas sentiment, yaitu Positif dan Negatif."}
               </p>
             </div>
