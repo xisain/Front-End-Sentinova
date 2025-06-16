@@ -119,7 +119,11 @@ const AnalysisContent = () => {
         }
         console.log(JSON.stringify(payload))
         const results = await api.post('/analyze_texts', payload)
-        
+
+        if (!results || typeof results !== "object" || results.success === false) {
+          addNotification(results?.message || "Terjadi kesalahan saat menganalisis teks", "error")
+          return
+}
         const analysisData = {
           analysisId,
           productName,
@@ -156,8 +160,9 @@ const AnalysisContent = () => {
         formData.append("file", selectedFile)
         const data = await api.postFormData('/analyze_csv', formData);
         
-        if (data.error) {
-          throw new Error(data.error)
+        if (!data || typeof data !== "object" || data.success === false) {
+        addNotification(data?.message || "Gagal memproses CSV", "error")
+        return
         }
 
         const analysisData = {
@@ -191,10 +196,19 @@ const AnalysisContent = () => {
         await storeAnalysisInFirestore(analysisData)
         navigate("/flow/analysis/results", { state: analysisData })
       }
-    } catch (error) {
-      console.error("Error during analysis:", error)
-      addNotification("Terjadi kesalahan saat menganalisis data. Silakan coba lagi.", "error")
-    } finally {
+   } catch (error) {
+  console.error("Error during analysis:", error)
+  try {
+    const messagePart = error.message?.split(" - ")[1]
+    const parsed = messagePart ? JSON.parse(messagePart) : null
+    const userMessage = parsed?.message || "Terjadi kesalahan saat menganalisis data."
+
+    addNotification(userMessage, "error")
+  } catch (parseError) {
+    // Fallback jika parsing gagal
+    addNotification("Terjadi kesalahan saat menganalisis data. Silakan coba lagi.", "error")
+  }
+  } finally {
       setIsLoading(false)
     }
   }
