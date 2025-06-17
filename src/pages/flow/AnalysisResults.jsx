@@ -13,6 +13,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiPackage,
+  FiChevronDown,
 } from "react-icons/fi"
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
@@ -23,10 +24,16 @@ const AnalysisResults = () => {
   const [results, setResults] = useState(null)
   const [activeModel, setActiveModel] = useState("pretrained") // "pretrained" or "naivebayes"
   const [comparisonMode, setComparisonMode] = useState(false)
+  const [activeSentimentFilter, setActiveSentimentFilter] = useState("all") // "all", "positive", "negative", "neutral"
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeSentimentFilter]);
 
   // Ubah fungsi processModelResults untuk menangani kedua model
   const processModelResults = (modelData, modelType) => ({
@@ -141,11 +148,17 @@ const AnalysisResults = () => {
     current.count > prev.count ? current : prev,
   )
 
-  // Pagination logic
-  const totalPages = Math.ceil(currentResults.reviewDetails.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentReviews = currentResults.reviewDetails.slice(startIndex, endIndex)
+  // Filter reviews based on active sentiment filter
+  const filteredReviews = currentResults.reviewDetails.filter(review => {
+    if (activeSentimentFilter === "all") return true;
+    return review.sentiment.toLowerCase() === activeSentimentFilter;
+  });
+
+  // Update pagination logic to use filtered reviews
+  const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentReviews = filteredReviews.slice(startIndex, endIndex);
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage)
@@ -572,20 +585,47 @@ const AnalysisResults = () => {
             Detail Analisis Ulasan - {activeModel === "pretrained" ? "Pre-trained Model" : "Naive Bayes"}
           </h2>
 
-          {/* Items per page selector */}
-          <div className="flex items-center gap-4">
-            <span className="text-gray-400 text-sm">Tampilkan:</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-              className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="text-gray-400 text-sm">per halaman</span>
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            {/* Sentiment Filter Dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-sm">Filter Sentimen:</span>
+              <div className="relative">
+                <select
+                  value={activeSentimentFilter}
+                  onChange={(e) => setActiveSentimentFilter(e.target.value)}
+                  className="appearance-none bg-white/10 border border-white/20 rounded-lg pl-3 pr-8 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 cursor-pointer hover:bg-white/15 transition-colors"
+                >
+                  <option value="all" className="bg-gray-800 text-white">Semua</option>
+                  <option value="positive" className="bg-gray-800 text-white">Positif</option>
+                  <option value="neutral" className="bg-gray-800 text-white">Netral</option>
+                  <option value="negative" className="bg-gray-800 text-white">Negatif</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                  <FiChevronDown className="h-4 w-4" />
+                </div>
+              </div>
+            </div>
+
+            {/* Items per page selector */}
+            <div className="flex items-center gap-4">
+              <span className="text-gray-400 text-sm">Tampilkan:</span>
+              <div className="relative">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  className="appearance-none bg-white/10 border border-white/20 rounded-lg pl-3 pr-8 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 cursor-pointer hover:bg-white/15 transition-colors"
+                >
+                  <option value={5} className="bg-gray-800 text-white">5</option>
+                  <option value={10} className="bg-gray-800 text-white">10</option>
+                  <option value={20} className="bg-gray-800 text-white">20</option>
+                  <option value={50} className="bg-gray-800 text-white">50</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                  <FiChevronDown className="h-4 w-4" />
+                </div>
+              </div>
+              <span className="text-gray-400 text-sm">per halaman</span>
+            </div>
           </div>
         </div>
 
@@ -633,8 +673,8 @@ const AnalysisResults = () => {
         {/* Pagination Controls */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mt-6 gap-4">
           <div className="text-gray-400 text-sm">
-            Menampilkan {startIndex + 1} - {Math.min(endIndex, currentResults.reviewDetails.length)} dari{" "}
-            {currentResults.reviewDetails.length} ulasan
+            Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredReviews.length)} dari{" "}
+            {filteredReviews.length} ulasan
           </div>
 
           <div className="flex items-center gap-2">

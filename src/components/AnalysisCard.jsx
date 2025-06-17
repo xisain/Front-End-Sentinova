@@ -2,12 +2,6 @@ import { motion } from "framer-motion"
 import { FiArrowRight } from "react-icons/fi"
 
 const AnalysisCard = ({ analysis, isLoading, onView, cardClassName = "" }) => {
-  const getSentimentColor = () => "bg-blue-500"
-  const getSentimentText = () => "Netral"
-
-  const displayScore = isNaN(analysis?.score)
-    ? "0%"
-    : `${Math.round(analysis.score * 100)}%`
 
   return (
     <motion.div
@@ -40,9 +34,9 @@ const AnalysisCard = ({ analysis, isLoading, onView, cardClassName = "" }) => {
             <span className="text-gray-400 text-sm">{analysis.date}</span>
           </div>
           <div className="flex items-center gap-2 mb-3">
-            <span className={`w-3 h-3 rounded-full ${getSentimentColor()}`}></span>
+            <span className={`w-3 h-3 rounded-full bg-blue-500`}></span>
             <span className="text-gray-300 text-sm">
-              {getSentimentText()} ({displayScore})
+              Newest Analysis
             </span>
           </div>
           <div className="flex justify-between items-center">
