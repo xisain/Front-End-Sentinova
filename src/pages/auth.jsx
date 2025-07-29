@@ -87,7 +87,8 @@ export default function Auth() {
             {/* Clerk Components with Black Theme */}
             {isLogin ? (
               <SignIn 
-                fallbackRedirectUrl="/"
+                redirectUrl="/flow"
+                afterSignInUrl="/flow"
                 appearance={{
                   elements: {
                     rootBox: "bg-transparent",
@@ -121,7 +122,8 @@ export default function Auth() {
               />
             ) : (
               <SignUp 
-                fallbackRedirectUrl="/"
+                redirectUrl="/flow"
+                afterSignUpUrl="/flow"
                 appearance={{
                   elements: {
                     rootBox: "bg-transparent",

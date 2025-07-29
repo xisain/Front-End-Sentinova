@@ -17,7 +17,11 @@ if(!clerk_key){
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-    <ClerkProvider publishableKey={clerk_key}>
+    <ClerkProvider 
+      publishableKey={clerk_key}
+      afterSignInUrl="/flow"
+      afterSignUpUrl="/flow"
+    >
       <NotificationProvider>
         <App />
       </NotificationProvider>
